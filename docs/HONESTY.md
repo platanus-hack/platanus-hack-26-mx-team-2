@@ -24,3 +24,44 @@ Design", 2025). It does NOT reimplement it. What we simplified, explicitly:
 - The Q-LLM's output is born UNTRUSTED regardless of content (taint origin).
 - The interpreter blocks any sink whose sensitive argument is UNTRUSTED — it is
   deterministic and cannot be talked out of it (containment, not detection).
+
+## Evidence: real CaMeL vs Ikarus (file/line counts)
+
+These counts come from the official DeepMind CaMeL reference implementation
+(Apache-2.0), cloned locally for comparison during development. They are cited here to
+make the simplifications above concrete rather than rhetorical.
+
+- **Interpreter.** Real CaMeL's interpreter is an AST-walking interpreter for a
+  restricted Python subset: `src/camel/interpreter/interpreter.py`, **2716 lines**.
+  Ikarus's `ikarus/interpreter.py` is a linear structured-plan executor, ~70 lines. This
+  is simplification (1) above, made literal: roughly 2700 lines of AST-node handling
+  collapse to a loop over an ordered list of steps.
+- **Value / capability system.** Real CaMeL's `src/camel/interpreter/value.py`
+  (**1460 lines**) is where capabilities attach to runtime values and where
+  control-flow taint propagation actually lives — the gap named by Ikarus's stub
+  `ikarus/policy.py:propagate_control_flow_taint`. Ikarus's equivalent is
+  `ikarus/labels.py`, ~30 lines of data-flow-only taint labels. This is simplification
+  (2) above: one file in real CaMeL is doing work that Ikarus explicitly does not do.
+- **Quarantined LLM.** Real CaMeL's `src/camel/quarantined_llm.py` is **103 lines**.
+  Its shape — a narrow extractor whose return value is never trusted by construction —
+  matches Ikarus's `ikarus/q_llm.py` design closely. This is the one place where Ikarus
+  is faithful in spirit, not just inspired: extract-only, output born untrusted.
+- **Privileged (planner) LLM.** Real CaMeL's
+  `src/camel/pipeline_elements/privileged_llm.py` is **483 lines**, handling planning,
+  retries, and tool-call formatting. Ikarus's `ikarus/p_llm.py` is ~50 lines and covers
+  only plan emission plus the live/mock/fallback path described in simplification (4).
+- **Policies.** Real CaMeL has a general policy engine,
+  `src/camel/security_policy.py` (110 lines), plus per-domain policy modules under
+  `src/camel/pipeline_elements/security_policies/`: banking (122 lines), slack
+  (99 lines), travel (150 lines), workspace (270 lines). Ikarus has no policy engine —
+  `ikarus/policy.py` hard-wires the TRUSTED-recipient rule directly, simplification (3)
+  above.
+- **Orchestration.** Real CaMeL's top-level orchestration lives in `main.py` (114 lines)
+  and `run_code.py` (161 lines) at the repo root, wiring the planner, interpreter, and
+  policies into a runnable pipeline. Ikarus's equivalent is `ikarus/cli.py`.
+
+**Framing.** Ikarus approximates the CaMeL architecture's *shape* (privileged planner /
+quarantined extractor / deterministic interpreter with taint-gated sinks). It does not
+reimplement CaMeL's restricted-Python execution model, its capability/value system, or
+its general policy engine. Where Ikarus is thin, it is thin because that surface was out
+of scope, not because it was discovered to be unnecessary.
