@@ -25,3 +25,6 @@ Task 7: complete (commits 5c49468..75a3224, review clean)
   - Minor: LLMError fallback branch untested (structurally identical, shared return); no Extraction schema validation of returned dict
 Task 8: complete (commits 4c75349..8f3332a, review clean)
   - Minor: build_catalog hardcodes tool names (plan-mandated); note embeds exc string
+Task 9: complete (commits 845b36a..fad9fa4, review clean after 1 fix)
+  - Important (FIXED): bare KeyErrors -> clear ValueErrors on interpreter lookups (commit fad9fa4); containment verified unaffected
+  - Security core verified: sink gating + taint non-laundering
