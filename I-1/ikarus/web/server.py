@@ -16,7 +16,7 @@ from ikarus.composition import CompositionRoot
 from ikarus.config import load_settings
 from ikarus.naive_agent import extract_injected_address
 from ikarus.scenarios import build_scenario, default_scenarios
-from ikarus.tools.email_sink import make_email_sink
+from ikarus.tools.email_sink import MockEmailSink
 from ikarus.web.live_flow import run_live_flow
 from ikarus.web.views import scene_view
 
@@ -72,8 +72,10 @@ def _parse_history(raw: str) -> list[dict]:
 
 
 def _app_service():
-    settings = load_settings()
-    return CompositionRoot(settings, email_sink=make_email_sink(settings)).build()
+    # The web demo is mock-only: force the mock email sink regardless of env
+    # (e.g. a local .env with IKARUS_SINK=resend), so the guided demo never
+    # attempts a real send. Real delivery is a CLI-only feature.
+    return CompositionRoot(load_settings(), email_sink=MockEmailSink()).build()
 
 
 def _run_scenes_for(scenario) -> list[dict]:

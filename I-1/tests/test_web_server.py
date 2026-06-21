@@ -14,6 +14,13 @@ def _reset_runtime():
     server._RUNTIME.clear()
 
 
+def test_index_loads_even_when_env_selects_resend_sink(monkeypatch):
+    # A local .env with IKARUS_SINK=resend must NOT break the mock-only web demo.
+    monkeypatch.setenv("IKARUS_SINK", "resend")  # no key on purpose
+    r = client.get("/")
+    assert r.status_code == 200
+
+
 def test_index_returns_html_with_three_scenes():
     r = client.get("/")
     assert r.status_code == 200
