@@ -69,3 +69,24 @@ def plan(
         return PlanResult(Plan.model_validate(data), False, "plan from P-LLM")
     except (LLMError, ValidationError) as exc:
         return PlanResult(canonical, True, f"fallback to canonical plan: {exc}")
+
+
+class PrivilegedPlanner:
+    """OOP seam over plan(): owns the tool catalog (derived from the registry).
+
+    The planner sees ONLY the trusted request, the available request fields, and
+    the tool catalog — never external data. Callers ask it to plan a request
+    without having to build the catalog themselves.
+    """
+
+    def __init__(self, registry: ToolRegistry, client: LLMClient | None = None,
+                 mock: bool = False):
+        self._registry = registry
+        self._catalog = build_catalog(registry)
+        self._client = client
+        self._mock = mock
+
+    def plan(self, request: str, canonical: Plan,
+             request_fields: list[str] | None = None) -> PlanResult:
+        return plan(request, self._catalog, canonical, request_fields,
+                    self._client, self._mock)
