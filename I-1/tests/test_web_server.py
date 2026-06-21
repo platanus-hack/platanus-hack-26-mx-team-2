@@ -106,6 +106,18 @@ def test_set_provider_to_mock_connects():
     assert server._RUNTIME.get("llm_provider") == "mock"
 
 
+def test_set_provider_updates_chat_chip_oob():
+    r = client.post("/provider", data={"provider": "lmstudio", "model": "", "api_key": ""})
+    assert 'id="chat-provider-chip"' in r.text and 'hx-swap-oob="true"' in r.text
+    assert "provider: lmstudio" in r.text          # chip carries the new provider
+
+
+def test_index_has_single_chat_chip_and_no_oob():
+    r = client.get("/")
+    assert "hx-swap-oob" not in r.text             # no stray OOB element on first load
+    assert r.text.count('id="chat-provider-chip"') == 1
+
+
 def test_set_provider_claude_without_key_reports_error():
     r = client.post("/provider", data={"provider": "claude", "model": "", "api_key": ""})
     assert "ANTHROPIC_API_KEY" in r.text          # missing-key surfaced, not crashed

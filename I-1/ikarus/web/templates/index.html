@@ -135,10 +135,19 @@
 
   </div>
   <script>
-    // Keep the chat scrolled to the latest message after each HTMX swap.
-    document.body.addEventListener('htmx:afterSwap', function () {
+    var reduceMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      // Keep the chat scrolled to the latest message.
       var log = document.getElementById('chat-log');
       if (log) log.scrollTop = log.scrollHeight;
+      // The sandbox updates the scenes far above the button — scroll the result
+      // into view and flash it so it's clear something happened.
+      var t = e.target;
+      if (t && t.id === 'scenes') {
+        t.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+        t.classList.remove('just-updated'); void t.offsetWidth; t.classList.add('just-updated');
+      }
     });
   </script>
 </body>

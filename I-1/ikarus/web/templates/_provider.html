@@ -32,3 +32,7 @@
   </div>
   <p class="hint">Solo en memoria del servidor (local) — la clave no se guarda en disco ni se muestra.</p>
 </form>
+{% if oob %}
+{# Out-of-band: keep the chat's provider chip in sync after Conectar. #}
+<span id="chat-provider-chip" class="chip brand" hx-swap-oob="true">provider: {{ provider }}</span>
+{% endif %}

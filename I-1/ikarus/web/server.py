@@ -36,16 +36,17 @@ def _effective_settings():
     return dataclasses.replace(s, **_RUNTIME) if _RUNTIME else s
 
 
-def _provider_ctx(status: str = "", status_class: str = "") -> dict:
+def _provider_ctx(status: str = "", status_class: str = "", oob: bool = False) -> dict:
     """Template context for the provider picker. The key value is NEVER sent —
-    only whether one is configured for the selected provider."""
+    only whether one is configured for the selected provider. `oob` adds an
+    out-of-band swap so the chat's provider chip updates on Conectar."""
     s = _effective_settings()
     p = s.llm_provider if s.llm_provider in _PROVIDERS else "mock"
     key_set = (bool(s.openai_api_key) if p == "openai"
                else bool(s.anthropic_api_key) if p == "claude" else False)
     return {"provider": p, "providers": _PROVIDERS, "model": s.chat_model,
             "needs_key": p in ("openai", "claude"), "key_set": key_set,
-            "status": status, "status_class": status_class}
+            "status": status, "status_class": status_class, "oob": oob}
 
 # Naive-agent persona for the chat: it has access to the user's inbox, which is
 # exactly what makes hidden-instruction injection demonstrable.
@@ -123,7 +124,7 @@ def create_app() -> FastAPI:
         except ValueError as exc:
             status, cls = str(exc), "err"
         return templates.TemplateResponse(request, "_provider.html",
-                                          _provider_ctx(status, cls))
+                                          _provider_ctx(status, cls, oob=True))
 
     @api.post("/chat", response_class=HTMLResponse)
     def chat(request: Request, message: str = Form(""), history: str = Form("[]")):

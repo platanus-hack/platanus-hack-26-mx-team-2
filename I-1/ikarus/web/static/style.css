@@ -131,6 +131,10 @@ h1,h2,h3{text-wrap:balance}
 
 /* ---- Panels & sections ------------------------------------------------- */
 .panel{padding:30px 0; border-bottom:1px solid var(--line)}
+#scenes{border-radius:var(--radius); scroll-margin-top:18px}
+#scenes.just-updated{animation:flashring 1.3s ease-out}
+@keyframes flashring{0%{box-shadow:0 0 0 2px var(--brand),0 0 26px var(--brand-glow)}
+  100%{box-shadow:0 0 0 0 transparent,0 0 0 transparent}}
 .panel > h2{margin:0 0 6px; font-size:22px; font-weight:700; letter-spacing:-.01em}
 .panel > .hint{margin:0 0 18px; color:var(--muted); font-size:14.5px; max-width:70ch}
 
