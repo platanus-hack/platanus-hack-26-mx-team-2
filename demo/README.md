@@ -136,7 +136,7 @@ next to what it controls, not buried at the bottom.
   (`mock` | LM Studio | OpenAI | Claude), chosen from the control bar (provider + API key).
 
 ```bash
-cd I-1
+cd demo
 pip install -e ".[web]"
 python -m ikarus.web            # serves http://127.0.0.1:8000
 #   ^ auto-detects a running LM Studio and uses it for the live run / chat.
@@ -154,10 +154,10 @@ security semantics. Respects `prefers-reduced-motion` and is responsive.
 
 ## Run (no model required)
 
-The project lives under `I-1/` (Agile iteration 1). Run from inside it:
+The project lives under `demo/` (Agile iteration 1). Run from inside it:
 
 ```bash
-cd I-1
+cd demo
 pip install -e .
 python -m ikarus --scene all --scenario email --mock
 ```
@@ -234,7 +234,7 @@ python -m ikarus.tools.email_sink --to you@x.com --body hi
 ## Tests — the guarantee as an invariant
 
 ```bash
-cd I-1 && python -m pytest -q        # 200 passing
+cd demo && python -m pytest -q        # 200 passing
 ```
 
 The suite proves the containment is **structural, not detection** — not just that the happy

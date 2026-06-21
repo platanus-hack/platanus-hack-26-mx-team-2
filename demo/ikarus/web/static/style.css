@@ -43,6 +43,7 @@
   --shadow:0 1px 2px rgba(2,5,10,.7),0 16px 40px rgba(2,5,10,.55),
            0 2px 30px rgba(254,117,31,.04);
   --t:200ms cubic-bezier(.4,0,.2,1);
+  --ease-out:cubic-bezier(.23,1,.32,1);  /* strong ease-out — punchy entrances */
   /* z-index scale */
   --z-base:0; --z-raised:10; --z-sticky:20; --z-overlay:50;
 }
@@ -201,6 +202,12 @@ h1,h2,h3{text-wrap:balance}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ---- Agent-flow strip (per scene, built by flow.js) -------------------- */
+/* Idle flow preview shown on load — structure visible, dimmed, no verdict. */
+.flow-idle{margin:10px 0 0}
+.flow-idle .flow-strip{opacity:.6}
+.flow-idle .flow-stage.naive{border-color:#7f1d1d}
+.flow-idle .flow-stage.guard{border-color:var(--brand-dim)}
+.flow-idle .hint{margin:10px 0 0}
 .flow-strip{display:flex; align-items:stretch; gap:8px; margin:14px 0 0}
 .flow-stage{flex:1; position:relative; display:flex; flex-direction:column; gap:3px;
   padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius-sm);
@@ -217,7 +224,8 @@ h1,h2,h3{text-wrap:balance}
 .flow-arrow{align-self:center; color:var(--muted); font-size:15px}
 .flow-taint,.flow-verdict{position:absolute; top:-8px; right:8px; font-family:var(--mono);
   font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:999px; opacity:0;
-  transform:translateY(3px); transition:opacity var(--t), transform var(--t); pointer-events:none}
+  transform:translateY(4px) scale(.96);
+  transition:opacity 200ms var(--ease-out), transform 200ms var(--ease-out); pointer-events:none}
 .flow-taint{color:var(--danger); background:var(--danger-bg); border:1px solid var(--danger-line)}
 .flow-taint.on,.flow-verdict.on{opacity:1; transform:none}
 .flow-verdict.pass{color:var(--ok); background:var(--ok-bg); border:1px solid var(--ok-line)}
@@ -225,8 +233,9 @@ h1,h2,h3{text-wrap:balance}
 .flow-controls{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 0 0}
 .flow-btn{background:var(--brand); color:#1a0c02; border:0; border-radius:var(--radius-sm);
   padding:6px 12px; font:700 12px var(--sans); cursor:pointer; touch-action:manipulation;
-  transition:background var(--t)}
+  transition:background var(--t), transform 140ms var(--ease-out)}
 .flow-btn:hover{background:#ff8534}
+.flow-btn:active{transform:scale(.97)}  /* instant press feedback */
 .flow-btn.ghost{background:transparent; color:var(--muted); border:1px solid var(--line)}
 .flow-btn.ghost:hover{color:var(--ink); border-color:var(--brand-dim)}
 .flow-status{font-family:var(--mono); font-size:11.5px; color:var(--muted)}
@@ -244,6 +253,16 @@ table.ledger tbody tr.pending{opacity:.18; transition:opacity var(--t)}
 .flow-verdict.taint{color:var(--brand); background:var(--brand-bg); border:1px solid var(--brand-dim)}
 .live-walk.walk-on .live-steps > .live-step{display:none}
 .live-walk.walk-on .live-steps > .live-step.is-active{display:block}
+/* The verdict is GATED behind the walk: hidden until the guard step is reached,
+   then it animates in (ease-out, scale from .985 — never from 0, with a brief
+   blur to bridge the entrance). A verdict NEVER shows before the real process +
+   logs have been stepped through — that is what made it read as simulated. */
+.live-walk.walk-on .live-verdict{display:none}
+.live-walk.walk-on.walk-done .live-verdict{display:block;
+  animation:verdict-reveal 380ms var(--ease-out) both}
+@keyframes verdict-reveal{
+  from{opacity:0; transform:translateY(10px) scale(.985); filter:blur(2px)}
+  to{opacity:1; transform:none; filter:none}}
 
 /* ---- Taint ledger ------------------------------------------------------ */
 .ledger-wrap{overflow-x:auto; margin-top:14px; border:1px solid var(--line); border-radius:var(--radius-sm)}
@@ -344,11 +363,6 @@ button:active{transform:translateY(1px) scale(.99);
   transition:border-color var(--t), box-shadow var(--t)}
 #scenario-select:focus-visible{outline:none; border-color:var(--brand);
   box-shadow:0 0 0 3px var(--brand-bg)}
-.send-test{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 18px}
-.send-result{font-family:var(--mono); font-size:12.5px}
-.send-result.ok{color:var(--ok)}
-.send-result.err{color:var(--danger)}
-.send-result.warn{color:var(--brand)}
 .planner-seen{margin:6px 0 0; font-size:12.5px; color:var(--muted)}
 
 /* ---- Provider picker --------------------------------------------------- */

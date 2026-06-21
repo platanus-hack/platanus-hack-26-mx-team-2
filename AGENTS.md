@@ -145,10 +145,22 @@ required**. Good for explaining the concept fast.
 
 ```bash
 cd demo
-pip install -e .
-python3 -m ikarus --scene all --scenario email --mock   # the demo
+pip install -e ".[web]"
+python3 -m ikarus --scene all --scenario email --mock   # CLI (offline, no model)
+python3 -m ikarus --scene all --scenario email --live   # CLI (real model, autodetects LM Studio)
+python3 -m uvicorn ikarus.web.server:app --reload       # web UI → :8000
 python3 -m pytest -q                                     # tests
 ```
+
+Current shape (keep it this way):
+- **Email-only.** The PDF scenario and file upload were removed.
+- **Live flow is the centerpiece, process → verdict.** Each scene shows its real
+  model REQUEST/RESPONSE FIRST, then its verdict (derived from the real guard).
+  Never pre-render a verdict before anything runs — that reads as fake.
+- **Real email send is opt-in** via `demo/.env` (git-ignored, never committed):
+  `IKARUS_SINK=resend` + `RESEND_API_KEY` + `IKARUS_ALLOWED_RECIPIENTS`. With
+  Resend's `onboarding@resend.dev` sender, delivery only works to the Resend
+  account-owner address. `load_settings()` auto-loads `demo/.env`.
 
 ## How to deploy (current setup)
 

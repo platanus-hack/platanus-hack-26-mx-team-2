@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- All commands run **from inside `I-1/`** (`cd I-1` first). The package is `ikarus`.
+- All commands run **from inside `demo/`** (`cd demo` first). The package is `ikarus`.
 - Run the suite with a clean env so a local `.env` (e.g. `IKARUS_SINK=resend`) never triggers real sends in tests: `env -i PATH="$PATH" HOME="$HOME" python3 -m pytest -q`.
 - The deterministic guarantee must NOT be weakened: the interpreter/guard decision stays deterministic; only P-LLM and Q-LLM may use a real model.
 - The 3-scene web display stays **mock email sink** (no real sends on render). Real sending happens ONLY on the explicit `/send-test` action, one email per click.

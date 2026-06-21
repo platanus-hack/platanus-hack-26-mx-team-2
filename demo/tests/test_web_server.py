@@ -228,8 +228,3 @@ def test_provider_picker_sits_above_the_live_run():
     assert html.index('name="provider"') < html.index("Ejecutar en vivo")
 
 
-def test_send_test_is_mock_safe_by_default():
-    # With no resend config (clean test env) it must NOT send and must not crash.
-    r = client.post("/send-test")
-    assert r.status_code == 200
-    assert "resend" in r.text.lower()  # tells the user how to enable real sends
