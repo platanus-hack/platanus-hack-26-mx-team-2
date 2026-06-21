@@ -18,7 +18,9 @@ def _select_plan(scene, scenario, registry, mock, client):
     if client is None:
         client = LLMClient(load_settings())
     res = plan_request(scenario.request, build_catalog(registry),
-                       canonical=scenario.canonical_plan, client=client)
+                       canonical=scenario.canonical_plan,
+                       request_fields=list(scenario.request_values),
+                       client=client)
     # A real model can emit a schema-valid but unexecutable plan; fall back to
     # the canonical plan rather than crash the interpreter (or fire a sink with
     # a half-resolved plan).
