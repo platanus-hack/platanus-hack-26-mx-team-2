@@ -69,6 +69,17 @@ def test_untrusted_body_is_blocked_at_runtime():
     assert res.blocked is True
     assert "send_email" not in res.executed_sinks
 
+def test_run_dispatches_source_by_tool():
+    # read_pdf must be reachable (not always read_inbox): provenance reflects it.
+    plan = Plan(steps=[
+        PlanStep(id="s1", kind="source", tool="read_pdf", args={}),
+        PlanStep(id="s2", kind="sink", tool="send_email", args={
+            "to": ArgRef(**{"from": "step", "ref": "s1"}),
+            "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    res = run(plan, _req(), inbox_text="report", registry=default_registry(),
+              mock=True, q_mock_value="x")
+    assert any(e.tainted and e.tainted.provenance.source == "pdf" for e in res.events)
+
 def test_unknown_request_ref_raises_clear_value_error():
     plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
         "to": ArgRef(**{"from": "request", "ref": "missing"}),

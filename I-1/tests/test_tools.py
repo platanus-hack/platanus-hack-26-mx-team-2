@@ -1,5 +1,5 @@
 from ikarus.tools.registry import ToolKind, default_registry
-from ikarus.tools.sources import read_inbox, read_pdf
+from ikarus.tools.sources import InboxSource, PdfSource
 from ikarus.tools.sinks import send_email, share_doc
 from ikarus.labels import Trust
 
@@ -11,10 +11,10 @@ def test_registry_classifies_sinks_and_sources():
     assert reg.get("read_inbox").kind == ToolKind.SOURCE
 
 def test_sources_are_untrusted():
-    t = read_inbox("hello")
+    t = InboxSource().read("hello")
     assert t.value == "hello"
     assert t.provenance.trust == Trust.UNTRUSTED
-    assert read_pdf("x").provenance.source == "pdf"
+    assert PdfSource().read("x").provenance.source == "pdf"
 
 def test_sinks_are_mocked_and_return_log():
     out = send_email("bob@corp.com", "body")

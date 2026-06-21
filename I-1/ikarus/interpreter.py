@@ -5,12 +5,13 @@ from ikarus.labels import Tainted, trusted
 from ikarus.schemas import Plan, ArgRef
 from ikarus.policy import check, Decision
 from ikarus.tools.registry import ToolRegistry
-from ikarus.tools.sources import read_inbox
+from ikarus.tools.sources import default_sources
 from ikarus.tools.sinks import send_email, share_doc
 from ikarus.tools.email_sink import SinkError
 from ikarus.q_llm import extract
 
 _SINK_FUNCS = {"send_email": send_email, "share_doc": share_doc}
+_DEFAULT_SOURCES = default_sources()
 
 @dataclass(frozen=True)
 class TraceEvent:
@@ -116,15 +117,20 @@ def _resolve(arg: ArgRef, env: dict[str, Tainted], request_values: dict[str, Tai
 
 def run(plan: Plan, request_values: dict[str, Tainted], inbox_text: str,
         registry: ToolRegistry, mock: bool = True, q_mock_value: str = "",
-        sinks: Optional[dict] = None) -> ExecutionResult:
+        sinks: Optional[dict] = None, sources: Optional[dict] = None) -> ExecutionResult:
     funcs = sinks or _SINK_FUNCS
+    srcs = sources or _DEFAULT_SOURCES
     env: dict[str, Tainted] = {}
     events: list[TraceEvent] = []
     executed: list[str] = []
     blocked = False
     for step in plan.steps:
         if step.kind == "source":
-            t = read_inbox(inbox_text)
+            source = srcs.get(step.tool)
+            if source is None:
+                raise ValueError(f"source step '{step.id}' uses unknown source "
+                                 f"'{step.tool}'")
+            t = source.read(inbox_text)
             env[step.id] = t
             events.append(TraceEvent(step.id, "source", f"read {step.tool}", tainted=t))
         elif step.kind == "extract":
