@@ -1,3 +1,4 @@
+import inspect
 from dataclasses import dataclass
 from typing import Optional
 from ikarus.labels import Tainted, trusted
@@ -46,8 +47,22 @@ def validate_plan(plan: Plan, registry: ToolRegistry,
         if step.kind == "extract" and step.input_ref not in seen:
             errors.append(f"extract step '{step.id}' input_ref '{step.input_ref}' "
                           "is not an earlier step")
-        if step.kind == "sink" and step.tool and step.tool not in _SINK_FUNCS:
-            errors.append(f"step '{step.id}' uses unknown sink tool '{step.tool}'")
+        if step.kind == "sink" and step.tool:
+            if step.tool not in _SINK_FUNCS:
+                errors.append(f"step '{step.id}' uses unknown sink tool '{step.tool}'")
+            else:
+                # The sink is called as fn(**args); flag missing-required or
+                # unexpected args that would raise TypeError at execution.
+                params = inspect.signature(_SINK_FUNCS[step.tool]).parameters
+                required = {n for n, p in params.items()
+                            if p.default is inspect.Parameter.empty}
+                provided = set(step.args)
+                for missing in sorted(required - provided):
+                    errors.append(f"step '{step.id}' sink '{step.tool}' "
+                                  f"missing required arg '{missing}'")
+                for extra in sorted(provided - set(params)):
+                    errors.append(f"step '{step.id}' sink '{step.tool}' "
+                                  f"has unexpected arg '{extra}'")
         for name, arg in step.args.items():
             if arg.from_ == "step" and arg.ref not in seen:
                 errors.append(f"step '{step.id}' arg '{name}' references "

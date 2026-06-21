@@ -87,3 +87,18 @@ def test_validate_plan_flags_forward_step_ref():
 def test_validate_plan_flags_unregistered_sink_tool():
     plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="rm_rf_slash", args={})])
     assert validate_plan(plan, default_registry(), _req()) != []
+
+def test_validate_plan_flags_sink_missing_required_arg():
+    # Real model emitted send_email(to=...) but no body => TypeError at execution.
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "request", "ref": "recipient"})})])
+    errors = validate_plan(plan, default_registry(), _req())
+    assert any("body" in e for e in errors)
+
+def test_validate_plan_flags_sink_unexpected_arg():
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "request", "ref": "recipient"}),
+        "body": ArgRef(**{"from": "request", "ref": "body"}),
+        "cc": ArgRef(**{"from": "request", "ref": "body"})})])
+    errors = validate_plan(plan, default_registry(), _req())
+    assert any("cc" in e for e in errors)
