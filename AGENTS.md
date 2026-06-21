@@ -14,6 +14,12 @@ hijacked by instructions hidden in that data. Ikarus separates planning from
 data, labels extracted data UNTRUSTED, and a deterministic interpreter blocks any
 dangerous action whose arguments are UNTRUSTED.
 
+**Vision vs. this repo.** The full design (`I-1/docs/DOCUMENTO-MAESTRO.md`, the system was
+renamed from *Lazarus* → *Ikarus*) is a plug-and-play **MCP gateway** product. **This repo
+is the Python PoC of the core** (the 3 layers over an email scenario) — the gateway, the
+policy DSL and the TS product are vision, not built. Don't describe the gateway as if it
+exists. CaMeL relationship: `I-1/docs/HONESTY.md` + `I-1/docs/CAMEL-VS-IKARUS.md`.
+
 ## Where the code lives
 
 **The entire project is under `I-1/`** (Agile iteration 1). Run every command

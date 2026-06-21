@@ -44,6 +44,21 @@ The policy is **deny-by-default**: a sink is blocked if *any* argument is
 UNTRUSTED — so the email body / shared-doc CONTENT is protected, not just the
 recipient.
 
+## Threat model (what we contain, and what we don't)
+
+- **Attacker:** anyone who can put text where the agent will read it — a sender, a web
+  page, a ticket, a shared doc, a DB row. They do **not** control your request or the guard.
+- **Asset:** the **integrity of the control flow** (which tools run) and the
+  **confidentiality** of your data (it must not flow to an unauthorized sink).
+- **Guarantee (structural, not probabilistic):** untrusted data **cannot change which
+  tools are called** (the plan is fixed before any data is seen) and **cannot flow to a
+  forbidden sink** (the deterministic guard checks provenance on every sink arg). This holds
+  **even if the base model is fully fooled**.
+- **Out of scope / honest limits:** the quarantine model returning a *wrong* extraction
+  (still confined, never becomes an action); a user who asks for something malicious (the
+  user is the trust boundary); cross-turn contamination via the *external* agent; and — in
+  this demo — control-flow taint (data-flow only). See [docs/HONESTY.md](docs/HONESTY.md).
+
 ## What the demo shows (3 scenes)
 
 - **Scene 1 — architectural guarantee:** the injection hidden in the inbox never
@@ -99,15 +114,23 @@ flowchart TB
 
 ## Web UI (demo + sandbox)
 
-A FastAPI + HTMX interface (Spanish copy): the guided 3-scene demo plus a
-**sandbox** where you type your own request and hide an injection in the inbox,
-then watch Ikarus contain it while the naive agent gets hijacked. Runs in mock
-mode (no model).
+A FastAPI + HTMX interface (Spanish copy) with four parts:
+- **Guided demo** — the 3 scenes with an animated P-LLM → Q-LLM → Guardia pipeline and a
+  play/step walkthrough of the Taint Ledger.
+- **Sandbox** — type your own request and hide an injection in the inbox; watch Ikarus
+  contain it while the naive agent gets hijacked.
+- **Chat** — talk to the naive agent through a **swappable LLM provider**
+  (`mock` | LM Studio | OpenAI | Claude), chosen from the UI (provider + API key).
+- **Run live** — runs the real P-LLM and Q-LLM against the configured provider and shows
+  their actual output step by step (the guard stays deterministic). The scene engine itself
+  is always mock — no real email is sent from the web.
 
 ```bash
 cd I-1
 pip install -e ".[web]"
 python -m ikarus.web            # serves http://127.0.0.1:8000
+# real models in the chat / live run:
+IKARUS_LLM_PROVIDER=lmstudio IKARUS_CHAT_MODEL="google/gemma-3-12b" python -m ikarus.web
 ```
 
 The UI follows the IKARUS brand design system: a 3-layer pipeline diagram
@@ -196,6 +219,21 @@ Smoke test the sink directly:
 ```bash
 python -m ikarus.tools.email_sink --to you@x.com --body hi
 ```
+
+## Vision (designed, NOT implemented in this demo)
+
+This repo is the **proof-of-concept of the core**. The full design
+([docs/DOCUMENTO-MAESTRO.md](docs/DOCUMENTO-MAESTRO.md)) is **plug-and-play
+infrastructure**: an **MCP gateway** you put in front of your own agent. The user connects
+their real MCPs (Gmail, CRM, DB…) and exposes a single MCP with one function,
+`run_task(task)`, to their LLM provider. Inside, a Planner turns the task into a
+deterministic program, the interpreter runs it with capabilities, a user-configurable
+Quarantine LLM parses untrusted data, and **declarative, UI-editable policies** gate every
+sink — with managed MCP credentials and a data-flow trace viewer.
+
+Mapping demo → vision: P-LLM = Planner, Q-LLM = Quarantine, interpreter + taint = interpreter
++ capabilities, `DenyUntrustedArgsPolicy` = the policy engine. The gateway, the policy DSL,
+the MCP aggregator and the TypeScript product are **design-only** here.
 
 ## Honesty
 

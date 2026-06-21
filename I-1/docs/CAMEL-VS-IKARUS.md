@@ -23,6 +23,26 @@ copy from the reference repo — the comparison below is read-only research, not
 | Top-level orchestration | `main.py` + `run_code.py` (repo root) | 114 + 161 | `ikarus/cli.py` | Three fixed scenes/scenarios instead of a general runnable pipeline |
 | Side-effect tools (sinks) | mocked AgentDojo tools | — | `ikarus/tools/email_sink.py` (~95 lines) | Swappable `mock`\|`Resend` email sink, gated by a recipient allowlist via the `AllowlistEmailSink` decorator; mock by default. The real Resend path is an Ikarus-specific addition (not part of CaMeL), kept safe by the allowlist |
 
+## Beyond the mapping: where Ikarus diverges by *intent* (not by simplification)
+
+The table above lists where Ikarus is *smaller* than CaMeL. But Ikarus's design
+(`docs/DOCUMENTO-MAESTRO.md`) also aims somewhere CaMeL does not — these are different
+goals, not missing features:
+
+| Dimension | Real CaMeL | Ikarus's design (vision) |
+|---|---|---|
+| What it is | A research defense, evaluated on the **AgentDojo** benchmark | **Plug-and-play infrastructure**: an MCP gateway you deploy in front of your own agent |
+| Surface | A pipeline you run in a research harness | **One MCP, one function** `run_task(task)` — the user replaces all their loose MCPs with this one |
+| Tools | AgentDojo's mocked tool suites | An **aggregator of the user's real MCPs** (Gmail/CRM/DB…), introspected to typed functions |
+| Quarantine LLM | Fixed in the framework | **User-configurable** (model + API key entered in a UI) |
+| Policies | A general policy engine + per-domain Python modules | **Declarative, UI-editable** rules with safe defaults (read/sink + provenance → allow/deny) |
+| Operability | Research code | Managed MCP credentials + a **data-flow trace viewer** for non-experts |
+
+**Status:** the gateway, the aggregator, the policy DSL and the UI above are **vision, not
+built** in this repo. What exists is the Python PoC of the three-layer core. So the honest
+line is: *inspired by CaMeL's guarantee, reframed as deployable infrastructure — and only
+the core of that is implemented so far.*
+
 ## Best honest talking points for judges
 
 - **The interpreter gap is the whole story in two numbers.** Real CaMeL's interpreter

@@ -258,7 +258,10 @@ Aplicado un **design system de marca** sobre la UI existente (motor y tests inta
   `dev` para TestClient).
 
 ### Documentación
-- `README.md` — quickstart (inglés).
+- `docs/DOCUMENTO-MAESTRO.md` — **diseño/visión canónico** (gateway MCP, stack TS). El
+  sistema se **renombró de Lazarus → Ikarus**. Este repo implementa solo el **PoC del núcleo**
+  (3 capas en Python); el gateway/TS es visión, no construido.
+- `README.md` — quickstart (inglés). Ya incluye **modelo de amenaza** y sección **Visión**.
 - `docs/COMO-PROBAR.md` — **cómo probar el demo paso a paso (español)**.
 - `docs/HONESTY.md` — qué se simplifica en el demo (con citas de líneas reales).
 - `docs/CAMEL-VS-IKARUS.md` — tabla comparativa del enfoque (pendiente de actualizar).
