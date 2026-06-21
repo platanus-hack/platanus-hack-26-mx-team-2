@@ -1,6 +1,7 @@
 import json
 from typing import Any, Optional
-from ikarus.config import Settings, is_reasoning_model
+from ikarus.config import Settings
+from ikarus.models import is_reasoning_model
 
 class LLMError(Exception):
     pass

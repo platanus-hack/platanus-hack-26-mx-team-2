@@ -9,13 +9,6 @@ DEFAULT_MAX_TOKENS = 1024
 # there, so they need a larger budget than non-reasoning models to finish.
 DEFAULT_REASONING_MAX_TOKENS = 8192
 
-# Substrings (matched case-insensitively against the model id) that mark a model
-# as a reasoner. Override the budget via IKARUS_REASONING_MAX_TOKENS if needed.
-REASONING_MODEL_MARKERS = (
-    "qwen3", "deepseek-r1", "-r1", "qwq", "magistral", "hermes-4",
-    "reasoner", "thinking",
-)
-
 DEFAULT_SINK = "mock"  # "mock" | "resend"; mock never sends a real email.
 
 @dataclass(frozen=True)
@@ -30,13 +23,6 @@ class Settings:
     email_from: str = ""
     # Hard backstop: a real sink only sends to addresses on this allowlist.
     allowed_recipients: tuple[str, ...] = ()
-
-def is_reasoning_model(model: str) -> bool:
-    """Heuristic: does this model id belong to a reasoning ('thinking') family?"""
-    m = model.lower()
-    if "-vl" in m:  # vision-language variants (e.g. qwen3-vl) are not reasoners
-        return False
-    return any(marker in m for marker in REASONING_MODEL_MARKERS)
 
 def _int_env(name: str, default: int) -> int:
     raw = os.environ.get(name)
