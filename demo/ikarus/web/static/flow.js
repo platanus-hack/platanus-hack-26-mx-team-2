@@ -185,7 +185,9 @@
     this.nodes = [];
     this.buildStrip();
     this.buildControls();
-    this.reveal(0);
+    // Auto-run the walk: the process visibly executes step by step and the verdict
+    // lands LAST. play() jumps straight to the final state under reduced-motion.
+    this.play();
   }
 
   LiveWalk.prototype.buildStrip = function () {
@@ -211,9 +213,11 @@
       node.className = 'flow-stage live' +
         (st.classList.contains('naive') ? ' naive' : '') +
         (st.classList.contains('guard') ? ' guard' : '');
+      // Badge starts hidden (no `on`): each pill's verdict lights up only when the
+      // walk reaches that step, so nothing is pre-revealed before its real output.
       node.innerHTML = '<span class="flow-dot"></span><span class="flow-tag">' + tag +
         '</span><span class="flow-name">' + name + '</span>' +
-        (badge ? '<span class="flow-verdict on ' + bcls + '">' + badge + '</span>' : '');
+        (badge ? '<span class="flow-verdict ' + bcls + '">' + badge + '</span>' : '');
       node.addEventListener('click', function () { self.go(idx); });
       strip.appendChild(node);
       self.nodes.push(node);
@@ -243,11 +247,18 @@
 
   LiveWalk.prototype.reveal = function (i) {
     this.i = i;
+    var last = this.steps.length - 1;
     this.steps.forEach(function (st, k) { st.classList.toggle('is-active', k === i); });
     this.nodes.forEach(function (n, k) {
       n.classList.toggle('active', k === i);
       n.classList.toggle('done', k < i);
+      var v = n.querySelector('.flow-verdict');  // light a pill's badge only once walked
+      if (v) v.classList.toggle('on', k <= i);
     });
+    // Reveal the final verdict block ONLY when the walk reaches the guard (last
+    // step) — and re-hide it if the user steps back. The verdict is the climax of
+    // the real process, never shown ahead of the logs that produced it.
+    this.root.classList.toggle('walk-done', i >= last);
     if (this.status) {
       this.status.textContent = 'Paso ' + (i + 1) + ' / ' + this.steps.length +
         ' — ' + (textOf(this.steps[i], '.live-layer') || '');
