@@ -1,0 +1,21 @@
+# Ikarus server (API + MCP). Runs via tsx; consumes workspace packages as TS source.
+FROM node:22-slim
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+RUN npm install -g pnpm@9
+
+WORKDIR /app
+COPY . .
+
+RUN pnpm install --frozen-lockfile
+# Generate the Prisma client (schema lives at /app/prisma/schema.prisma).
+RUN pnpm --filter @ikarus/server db:generate
+
+ENV NODE_ENV=production
+ENV PORT=8787
+EXPOSE 8787
+
+# Seed is idempotent (upserts); `;` so a seed hiccup never blocks boot.
+CMD ["sh", "-c", "pnpm --filter @ikarus/server exec tsx ../../prisma/seed.ts; pnpm --filter @ikarus/server start"]

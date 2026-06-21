@@ -1,0 +1,53 @@
+# Ikarus product (server API+MCP + web SPA). Deployed as a Dokploy Compose.
+# Secrets/domains come from the Dokploy Environment (interpolated as ${VAR}).
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    restart: unless-stopped
+    environment:
+      PORT: "8787"
+      IKARUS_ENC_KEY: ${IKARUS_ENC_KEY}
+      DATABASE_URL: ${DATABASE_URL}
+      DIRECT_URL: ${DIRECT_URL}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      IKARUS_WORKSPACE_USER: ${IKARUS_WORKSPACE_USER}
+      WEB_ORIGIN: ${PUBLIC_URL}
+      OAUTH_PUBLIC_BASE: ${PUBLIC_URL}
+      PLANNER_PROVIDER: ${PLANNER_PROVIDER}
+      PLANNER_MODEL: ${PLANNER_MODEL}
+      PLANNER_API_KEY: ${PLANNER_API_KEY}
+      QUARANTINE_PROVIDER: ${QUARANTINE_PROVIDER}
+      QUARANTINE_MODEL: ${QUARANTINE_MODEL}
+      QUARANTINE_API_KEY: ${QUARANTINE_API_KEY}
+    expose:
+      - "8787"
+    networks:
+      - dokploy-network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_SUPABASE_URL: ${SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+        VITE_MCP_URL: ${PUBLIC_URL}/mcp
+    restart: unless-stopped
+    depends_on:
+      - server
+    networks:
+      - dokploy-network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.ikarus-web.rule=Host(`${PUBLIC_HOST}`)
+      - traefik.http.routers.ikarus-web.entrypoints=websecure
+      - traefik.http.routers.ikarus-web.tls.certresolver=letsencrypt
+      - traefik.http.services.ikarus-web.loadbalancer.server.port=80
+
+networks:
+  dokploy-network:
+    external: true
