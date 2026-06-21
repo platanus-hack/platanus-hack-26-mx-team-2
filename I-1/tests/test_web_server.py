@@ -144,6 +144,18 @@ def test_flow_live_returns_three_real_layers_and_block():
     assert "BLOCK" in r.text and "determinista" in r.text
 
 
+def test_flow_live_exposes_raw_model_logs():
+    r = client.post("/flow/live")
+    assert "request / response" in r.text.lower()  # collapsible logs present
+    assert "▸ system:" in r.text                    # raw prompt is shown
+
+
+def test_chat_exposes_raw_model_logs_after_a_turn():
+    r = client.post("/chat", data={"message": "hola", "history": "[]"})
+    assert "request / response" in r.text.lower()
+    assert "▸ system:" in r.text and "hola" in r.text
+
+
 def test_flow_live_with_unconfigured_claude_shows_error_not_500():
     server._RUNTIME["llm_provider"] = "claude"    # no key set
     r = client.post("/flow/live")

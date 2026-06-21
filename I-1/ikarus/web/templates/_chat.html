@@ -11,6 +11,14 @@
   {% endfor %}
 </div>
 
+{% if log_resp %}
+<details class="model-logs">
+  <summary>Ver request / response crudos del modelo (último turno)</summary>
+  <div class="log-block"><span class="log-label">REQUEST →</span><pre>{{ log_req }}</pre></div>
+  <div class="log-block"><span class="log-label">← RESPONSE</span><pre>{{ log_resp }}</pre></div>
+</details>
+{% endif %}
+
 <form class="chat-form" hx-post="/chat" hx-target="#chat" hx-swap="innerHTML"
       hx-disabled-elt="button">
   <input type="hidden" name="history" value="{{ history_json }}">

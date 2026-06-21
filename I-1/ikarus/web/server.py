@@ -131,18 +131,24 @@ def create_app() -> FastAPI:
         settings = _effective_settings()
         messages = _parse_history(history)
         text = (message or "").strip()[:_MAX_MSG]
+        log_req = log_resp = ""
         if text:
             messages.append({"role": "user", "content": text})
+            sent = list(messages)  # exactly what goes to the model (proof, not facade)
             try:
-                reply = make_chat_provider(settings).complete(_CHAT_SYSTEM, messages)
+                reply = make_chat_provider(settings).complete(_CHAT_SYSTEM, sent)
             except (ChatError, ValueError) as exc:  # transport/config — surface, don't crash
                 reply = f"[error] {exc}"
             messages.append({"role": "assistant", "content": reply})
+            log_req = "▸ system:\n" + _CHAT_SYSTEM + "\n\n" + "\n".join(
+                f"▸ {m['role']}:\n{m['content']}" for m in sent)
+            log_resp = reply
         messages = messages[-_MAX_HISTORY:]
         return templates.TemplateResponse(request, "_chat.html", {
             "messages": messages,
             "history_json": json.dumps(messages, ensure_ascii=False),
             "provider": settings.llm_provider,
+            "log_req": log_req, "log_resp": log_resp,
         })
 
     @api.post("/flow/live", response_class=HTMLResponse)

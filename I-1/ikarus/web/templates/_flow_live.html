@@ -16,6 +16,13 @@
       <p class="live-title">{{ s.title }}</p>
       <pre class="live-detail">{{ s.detail }}</pre>
       <p class="live-note">{{ s.note }}</p>
+      {% if s.req %}
+      <details class="model-logs">
+        <summary>Ver request / response crudos del modelo</summary>
+        <div class="log-block"><span class="log-label">REQUEST →</span><pre>{{ s.req }}</pre></div>
+        <div class="log-block"><span class="log-label">← RESPONSE</span><pre>{{ s.resp }}</pre></div>
+      </details>
+      {% endif %}
     </article>
     {% endfor %}
   </div>
