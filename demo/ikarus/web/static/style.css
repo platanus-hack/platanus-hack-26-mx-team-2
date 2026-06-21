@@ -38,13 +38,17 @@
   --mono:'Fira Code',ui-monospace,SFMono-Regular,Menlo,monospace;
   --sans:'Fira Sans',-apple-system,Segoe UI,Roboto,sans-serif;
   --radius:12px; --radius-sm:8px;
-  --shadow:0 1px 2px rgba(0,0,0,.6),0 14px 38px rgba(0,0,0,.5);
+  /* Shadows tinted toward the navy-black base (not pure black) so elevation reads
+     as part of the world, plus a hair of brand warmth on the long shadow. */
+  --shadow:0 1px 2px rgba(2,5,10,.7),0 16px 40px rgba(2,5,10,.55),
+           0 2px 30px rgba(254,117,31,.04);
   --t:200ms cubic-bezier(.4,0,.2,1);
   /* z-index scale */
   --z-base:0; --z-raised:10; --z-sticky:20; --z-overlay:50;
 }
 
 *{box-sizing:border-box}
+::selection{background:rgba(254,117,31,.28); color:#fff}
 html{scroll-behavior:smooth; color-scheme:dark}
 body{
   margin:0; background:var(--bg); color:var(--ink);
@@ -64,6 +68,12 @@ body::before{
   background-size:46px 46px;
   -webkit-mask-image:radial-gradient(circle at 50% -5%, #000 0%, transparent 72%);
   mask-image:radial-gradient(circle at 50% -5%, #000 0%, transparent 72%);
+}
+/* Fine film grain over the whole page — breaks the digital flatness (premium
+   texture). SVG turbulence, very low opacity, never intercepts pointer events. */
+body::after{
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .wrap{max-width:1040px; margin:0 auto; padding:0 24px}
 a{color:var(--brand)}
@@ -294,10 +304,15 @@ button{
   justify-self:start; background:var(--brand); color:#1a0c02; border:0;
   border-radius:var(--radius-sm); padding:11px 20px; font:700 14px var(--sans);
   cursor:pointer; transition:background var(--t), transform var(--t), box-shadow var(--t);
-  box-shadow:0 4px 14px rgba(254,117,31,.28); touch-action:manipulation;
+  /* Inner top highlight + warm drop = a lit, slightly raised physical key. */
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 4px 14px rgba(254,117,31,.28);
+  touch-action:manipulation;
 }
-button:hover{background:#ff8534}
-button:active{transform:translateY(1px)}
+button:hover{background:#ff8534; box-shadow:inset 0 1px 0 rgba(255,255,255,.28),
+  0 6px 20px rgba(254,117,31,.36)}
+button:active{transform:translateY(1px) scale(.99);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
+.flow-btn:active{transform:translateY(1px) scale(.99)}
 
 /* ---- Provider bar (global control at top of demo panel) --------------- */
 .provider-bar{margin:0 0 18px; padding:12px 14px; border:1px solid var(--line);
