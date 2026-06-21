@@ -1,0 +1,136 @@
+// Ikarus data model (Supabase Postgres). Supabase Auth owns identity in
+// auth.users; Prisma does not manage it. Every row references userId = the
+// Supabase UID (UUID). A local User row is upserted on first login.
+//
+// Secrets (MCP credentials, model API keys) are stored as a single AES-256-GCM
+// blob produced by apps/server/src/crypto.ts: [version|iv|authTag|ciphertext].
+// The master key lives ONLY in env (IKARUS_ENC_KEY), never here. `*Last4` is the
+// only secret fragment the API may return.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")  // pooled (pgbouncer) for the app
+  directUrl = env("DIRECT_URL")    // direct connection for migrations
+}
+
+model User {
+  id           String          @id // = Supabase auth UID
+  email        String          @unique
+  createdAt    DateTime        @default(now())
+  // Per-user MCP endpoint auth: sha256 of the personal key the user pastes into
+  // their MCP client. Only the hash + last4 are stored; the plaintext is shown once.
+  mcpKeyHash   String?         @unique
+  mcpKeyLast4  String?
+  connections  McpConnection[]
+  policies     Policy[]
+  modelConfigs ModelConfig[]
+  runs         Run[]
+}
+
+enum McpTransport {
+  STDIO
+  HTTP
+}
+
+model McpConnection {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label        String
+  transport    McpTransport
+  endpoint     String // URL (HTTP) or JSON {command,args} (STDIO)
+  encryptedCreds Bytes? // AES-256-GCM blob; key is NOT here (env)
+  credLast4    String? // only secret fragment the UI may see
+  catalogCache Json?
+  status       String       @default("unverified")
+  policies     Policy[]
+  createdAt    DateTime     @default(now())
+
+  @@index([userId])
+}
+
+enum ToolEffect {
+  READ
+  SINK
+}
+
+model Policy {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectionId   String
+  connection     McpConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  toolName       String
+  effect         ToolEffect
+  sensitiveArgs  String[]
+  requireTrusted Boolean       @default(true)
+
+  @@unique([connectionId, toolName])
+  @@index([userId])
+}
+
+enum ModelRole {
+  PLANNER
+  QUARANTINE
+}
+
+enum ModelProvider {
+  ANTHROPIC
+  OPENAI
+}
+
+model ModelConfig {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         ModelRole
+  provider     ModelProvider
+  modelId      String
+  encryptedKey Bytes // AES-256-GCM blob
+  keyLast4     String?
+
+  @@unique([userId, role])
+}
+
+enum RunStatus {
+  PLANNING
+  RUNNING
+  BLOCKED
+  COMPLETED
+  ERROR
+}
+
+model Run {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task      String
+  program   String?
+  status    RunStatus    @default(PLANNING)
+  result    Json?
+  error     String?
+  createdAt DateTime     @default(now())
+  traces    TraceEvent[]
+
+  @@index([userId])
+}
+
+model TraceEvent {
+  id       String  @id @default(cuid())
+  runId    String
+  run      Run     @relation(fields: [runId], references: [id], onDelete: Cascade)
+  seq      Int
+  kind     String // tool_call | query_ai | policy_deny | return
+  mcpId    String?
+  toolName String?
+  argCaps  Json // args + capabilities — NEVER raw secrets
+  verdict  String?
+  ruleId   String?
+  detail   Json?
+
+  @@index([runId, seq])
+}

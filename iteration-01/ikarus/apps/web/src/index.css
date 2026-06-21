@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+/* Dark-locked product console. One primary accent (cyan); green/red/amber are
+   SEMANTIC state colors the trace viewer needs (trusted / blocked / quarantine),
+   not decorative accents. */
+@theme {
+  /* Warm off-black base (never pure #000 — it kills depth) + a single locked
+     orange accent. Semantic state colors (green/red/yellow) stay distinct from
+     the brand orange so the trace viewer never reads ambiguously. */
+  --color-bg: #0a0807;
+  --color-surface: #131110;
+  --color-surface-2: #1b1715;
+  --color-line: #2a2421;
+  --color-line-strong: #39312c;
+
+  --color-ink: #f1ece8;
+  --color-ink-dim: #a69d95;
+  --color-ink-faint: #6c635c;
+
+  --color-accent: #ff7a1a;
+  --color-accent-strong: #e85d04;
+
+  --color-trusted: #34d399;
+  --color-trusted-dim: #134e3a;
+  --color-blocked: #fb7185;
+  --color-blocked-dim: #4c1d28;
+  --color-quarantine: #facc15;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  --radius: 10px;
+
+  /* emil-design-eng custom easing curves (built-in CSS easings lack punch). */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+* {
+  border-color: var(--color-line);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* A faint top-lit grade so the console has depth without a flat slab look. */
+#root {
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(255, 122, 26, 0.06), transparent 60%),
+    var(--color-bg);
+}
+
+/* Native buttons default to the arrow cursor — make all enabled ones a pointer.
+   Links/NavLinks already get a pointer; div.pressable cards stay default. */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+/* Pressable: instant, responsive feedback (emil: scale on :active). */
+.pressable {
+  transition: transform 140ms var(--ease-out), background-color 140ms var(--ease-out),
+    border-color 140ms var(--ease-out), color 140ms var(--ease-out), opacity 140ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pressable:hover {
+    border-color: var(--color-line-strong);
+  }
+}
+.pressable:active {
+  transform: scale(0.975);
+}
+
+/* Row enter: subtle rise + fade, staggered by inline --i. Decorative only. */
+@media (prefers-reduced-motion: no-preference) {
+  .enter {
+    opacity: 0;
+    transform: translateY(6px);
+    animation: enter 360ms var(--ease-out) forwards;
+    animation-delay: calc(var(--i, 0) * 36ms);
+  }
+}
+@keyframes enter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: rgba(255, 122, 26, 0.3);
+}
+
+/* Scrollbars tuned to the surface (Webkit). */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-radius: 8px;
+  border: 2px solid var(--color-bg);
+}
