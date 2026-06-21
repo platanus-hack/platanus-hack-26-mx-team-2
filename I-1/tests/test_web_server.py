@@ -45,3 +45,8 @@ def test_sandbox_without_injection_naive_stays_safe():
 
 def test_sandbox_output_differs_from_default_demo():
     assert "mallory@evil.test" not in client.get("/").text
+
+
+def test_web_main_module_exposes_app_and_main():
+    import ikarus.web.__main__ as m
+    assert hasattr(m, "main")

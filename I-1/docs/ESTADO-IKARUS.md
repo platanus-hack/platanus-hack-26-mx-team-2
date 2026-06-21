@@ -224,6 +224,8 @@ Clonado en `../camel-reference/` (hermano de este proyecto), Apache-2.0. Núcleo
 3. **Stretch B2** (taint por flujo de control real) — **EN COLA**, solo si el dueño lo aprueba.
    Requiere extender `schemas.py` (condicionales), `interpreter.py` y
    `policy.py:propagate_control_flow_taint`.
-4. **Stretch C2 (vista web):** **diseñada pero NO construida** — pendiente.
+4. **C2 (vista web): CONSTRUIDA.** FastAPI + HTMX bajo `ikarus/web/` (demo guiado de
+   las 3 escenas + sandbox interactivo). Mock-only. Correr: `pip install -e ".[web]"`
+   y `python -m ikarus.web` (http://127.0.0.1:8000). Ver `I-1/README.md`.
 5. **Decisión de cierre de rama:** `ikarus-impl` no está fusionada (el dueño la fusionará a
    mano). Opciones: merge a `master`, PR, o dejarla. (Pendiente que decida el dueño.)

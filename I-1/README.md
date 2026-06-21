@@ -97,6 +97,18 @@ flowchart TB
     class PLLM,QLLM,INT,GATE guard
 ```
 
+## Web UI (demo + sandbox)
+
+A FastAPI + HTMX interface: the guided 3-scene demo plus a **sandbox** where you
+type your own request and hide an injection in the inbox, then watch Ikarus
+contain it while the naive agent gets hijacked. Runs in mock mode (no model).
+
+```bash
+cd I-1
+pip install -e ".[web]"
+python -m ikarus.web            # serves http://127.0.0.1:8000
+```
+
 ## Run (no model required)
 
 The project lives under `I-1/` (Agile iteration 1). Run from inside it:
