@@ -1,6 +1,7 @@
+import pytest
 from ikarus.interpreter import run, ExecutionResult
 from ikarus.schemas import Plan, PlanStep, ArgRef
-from ikarus.tools.registry import default_registry
+from ikarus.tools.registry import default_registry, ToolRegistry, ToolSpec, ToolKind
 from ikarus.labels import trusted
 
 def _req():
@@ -28,3 +29,24 @@ def test_untrusted_recipient_from_extraction_is_blocked():
     assert res.blocked is True
     assert "send_email" not in res.executed_sinks
     assert any(e.decision and not e.decision.allowed for e in res.events)
+
+def test_unknown_request_ref_raises_clear_value_error():
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "request", "ref": "missing"}),
+        "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    with pytest.raises(ValueError, match="missing"):
+        run(plan, _req(), inbox_text="", registry=default_registry())
+
+def test_unknown_step_ref_raises_clear_value_error():
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "step", "ref": "s99"}),
+        "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    with pytest.raises(ValueError, match="s99"):
+        run(plan, _req(), inbox_text="", registry=default_registry())
+
+def test_missing_sink_func_raises_clear_value_error():
+    reg = ToolRegistry()
+    reg.register(ToolSpec("rogue_sink", ToolKind.SINK, sensitive_args=()))
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="rogue_sink", args={})])
+    with pytest.raises(ValueError, match="rogue_sink"):
+        run(plan, _req(), inbox_text="", registry=reg)

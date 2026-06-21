@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-from ikarus.labels import Tainted
+from ikarus.labels import Tainted, trusted
 from ikarus.schemas import Plan, ArgRef
 from ikarus.policy import check, Decision
 from ikarus.tools.registry import ToolRegistry
@@ -25,14 +25,17 @@ class ExecutionResult:
     executed_sinks: list[str]
 
 def _resolve(arg: ArgRef, env: dict[str, Tainted], request_values: dict[str, Tainted]) -> Tainted:
-    from ikarus.labels import trusted
     if arg.from_ == "literal":
         return trusted(arg.value, source="user_request")
     if arg.from_ == "request":
         if arg.ref is not None:
+            if arg.ref not in request_values:
+                raise ValueError(f"plan references unknown request value '{arg.ref}'")
             return request_values[arg.ref]
         return trusted(arg.value, source="user_request")
     if arg.from_ == "step":
+        if arg.ref not in env:
+            raise ValueError(f"plan references unknown/not-yet-run step '{arg.ref}'")
         return env[arg.ref]
     raise ValueError(f"bad ArgRef source: {arg.from_}")
 
@@ -61,6 +64,8 @@ def run(plan: Plan, request_values: dict[str, Tainted], inbox_text: str,
             events.append(TraceEvent(step.id, "sink", f"policy on {step.tool}",
                                      decision=decision))
             if decision.allowed:
+                if step.tool not in _SINK_FUNCS:
+                    raise ValueError(f"no sink function registered for tool '{step.tool}'")
                 _SINK_FUNCS[step.tool](**{k: v.value for k, v in args.items()})
                 executed.append(step.tool)
             else:
