@@ -28,3 +28,5 @@ Task 8: complete (commits 4c75349..8f3332a, review clean)
 Task 9: complete (commits 845b36a..fad9fa4, review clean after 1 fix)
   - Important (FIXED): bare KeyErrors -> clear ValueErrors on interpreter lookups (commit fad9fa4); containment verified unaffected
   - Security core verified: sink gating + taint non-laundering
+Task 10: complete (commits 781ccdb..f6535fd, review clean)
+  - Minor: unused LLMError import; stylistic ternary
