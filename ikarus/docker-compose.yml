@@ -41,12 +41,8 @@ services:
       - server
     networks:
       - dokploy-network
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.ikarus-web.rule=Host(`${PUBLIC_HOST}`)
-      - traefik.http.routers.ikarus-web.entrypoints=websecure
-      - traefik.http.routers.ikarus-web.tls.certresolver=letsencrypt
-      - traefik.http.services.ikarus-web.loadbalancer.server.port=80
+    # Domains are managed by Dokploy (domain.create), which injects the Traefik
+    # routing — no manual labels here.
 
 networks:
   dokploy-network:
