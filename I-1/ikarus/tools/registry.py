@@ -27,6 +27,9 @@ class ToolRegistry:
     def is_sink(self, name: str) -> bool:
         return self.get(name).kind == ToolKind.SINK
 
+    def all_specs(self) -> tuple[ToolSpec, ...]:
+        return tuple(self._specs.values())
+
 def default_registry() -> ToolRegistry:
     reg = ToolRegistry()
     reg.register(ToolSpec("read_inbox", ToolKind.SOURCE))

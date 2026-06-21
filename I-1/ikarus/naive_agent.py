@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 from ikarus.tools.sinks import send_email
 from ikarus.tools.email_sink import SinkError
-from ikarus.llm_client import LLMClient, LLMError
+from ikarus.llm_client import LLMClient
 
 _ADDR = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 

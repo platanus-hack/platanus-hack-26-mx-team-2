@@ -1,6 +1,9 @@
+import logging
 from ikarus.labels import Tainted, untrusted
 from ikarus.schemas import Extraction
 from ikarus.llm_client import LLMClient, LLMError
+
+_log = logging.getLogger(__name__)
 
 _SYSTEM = (
     "You are a QUARANTINED extractor. You ONLY extract the requested field from the "
@@ -22,6 +25,7 @@ def extract(blob: str, query: str, client: LLMClient | None = None,
             schema_name="Extraction",
         )
         value = str(data.get("value", ""))
-    except LLMError:
+    except LLMError as exc:
+        _log.warning("Q-LLM extraction failed, using mock value: %s", exc)
         value = mock_value
     return untrusted(value, "q_llm")  # no content can change this

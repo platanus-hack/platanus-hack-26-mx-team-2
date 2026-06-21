@@ -1,4 +1,5 @@
 import os
+import pytest
 from ikarus.config import load_settings, Settings, is_reasoning_model
 
 def test_defaults_when_no_env(monkeypatch):
@@ -33,6 +34,12 @@ def test_is_reasoning_model():
     assert is_reasoning_model("deepseek/deepseek-r1-0528-qwen3-8b")
     assert not is_reasoning_model("google/gemma-3-12b")
     assert not is_reasoning_model("openai/gpt-oss-20b")
+    assert not is_reasoning_model("qwen/qwen3-vl-4b")  # vision variant, not a reasoner
+
+def test_invalid_int_env_raises_clear_error(monkeypatch):
+    monkeypatch.setenv("IKARUS_MAX_TOKENS", "not-a-number")
+    with pytest.raises(ValueError, match="IKARUS_MAX_TOKENS"):
+        load_settings()
 
 def test_sink_defaults_to_mock(monkeypatch):
     for k in ("IKARUS_SINK", "IKARUS_ALLOWED_RECIPIENTS", "RESEND_API_KEY",

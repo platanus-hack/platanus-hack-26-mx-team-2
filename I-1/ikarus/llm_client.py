@@ -6,20 +6,30 @@ class LLMError(Exception):
     pass
 
 def _parse_json(text: Optional[str]) -> dict:
-    """Parse JSON, tolerating a JSON object embedded in surrounding prose."""
+    """Parse JSON, tolerating a JSON object embedded in surrounding prose.
+
+    Scans each '{' with a streaming decoder and returns the first object that
+    decodes cleanly — robust when the model wraps the JSON in reasoning text or
+    emits more than one object (vs. the fragile first-'{'/last-'}' span).
+    """
     text = (text or "").strip()
     if not text:
         raise LLMError("LLM returned empty content")
     try:
         return json.loads(text)
     except (json.JSONDecodeError, TypeError):
-        start, end = text.find("{"), text.rfind("}")
-        if start != -1 and end > start:
-            try:
-                return json.loads(text[start:end + 1])
-            except (json.JSONDecodeError, TypeError):
-                pass
-        raise LLMError(f"LLM returned non-JSON: {text!r}")
+        pass
+    decoder = json.JSONDecoder()
+    idx = text.find("{")
+    while idx != -1:
+        try:
+            obj, _ = decoder.raw_decode(text, idx)
+            if isinstance(obj, dict):
+                return obj
+        except json.JSONDecodeError:
+            pass
+        idx = text.find("{", idx + 1)
+    raise LLMError(f"LLM returned non-JSON: {text!r}")
 
 def _reasoning_content(message: Any) -> Optional[str]:
     rc = getattr(message, "reasoning_content", None)
@@ -60,7 +70,10 @@ class LLMClient:
             )
         except Exception as exc:  # transport / API failure
             raise LLMError(f"LLM call failed: {exc}") from exc
-        message = resp.choices[0].message
+        try:
+            message = resp.choices[0].message
+        except (IndexError, AttributeError) as exc:
+            raise LLMError(f"LLM returned no choices: {resp!r}") from exc
         # Some reasoning models leave `content` empty and put the JSON in the
         # reasoning channel; fall back to it before giving up.
         return _parse_json(message.content or _reasoning_content(message))

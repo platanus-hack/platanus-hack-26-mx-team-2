@@ -1,7 +1,7 @@
 import json
 import pytest
 from ikarus.config import Settings
-from ikarus.llm_client import LLMClient, LLMError
+from ikarus.llm_client import LLMClient, LLMError, _parse_json
 
 class _FakeMessage:
     def __init__(self, content, reasoning_content=None):
@@ -28,6 +28,30 @@ class _FakeOpenAI:
     def __init__(self, content=None, exc=None, reasoning_content=None):
         self.completions = _FakeCompletions(content, exc, reasoning_content)
         self.chat = _FakeChat(self.completions)
+
+class _EmptyChoicesResp:
+    choices: list = []
+class _EmptyChoicesCompletions:
+    def create(self, **kwargs): return _EmptyChoicesResp()
+class _EmptyChoicesOpenAI:
+    def __init__(self): self.chat = _FakeChat(_EmptyChoicesCompletions())
+
+def test_parse_json_handles_object_with_trailing_prose():
+    assert _parse_json('{"steps": []}\nDone thinking.') == {"steps": []}
+
+def test_parse_json_picks_first_valid_object_among_many():
+    # Two objects in prose: return the first valid one (downstream schema
+    # validation rejects a wrong object and triggers the canonical fallback).
+    assert _parse_json('I considered {"a": 1} then {"steps": []}') == {"a": 1}
+
+def test_parse_json_raises_on_no_json():
+    with pytest.raises(LLMError):
+        _parse_json("no json here at all")
+
+def test_structured_empty_choices_raises_llmerror():
+    client = LLMClient(_settings(), _client=_EmptyChoicesOpenAI())
+    with pytest.raises(LLMError):
+        client.structured("sys", "usr", {"type": "object"}, "S")
 
 def _settings(model="m", max_tokens=1024, reasoning_max_tokens=8192):
     return Settings(base_url="http://x/v1", model=model, api_key="k",

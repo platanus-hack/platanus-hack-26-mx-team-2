@@ -131,13 +131,20 @@ def run(plan: Plan, request_values: dict[str, Tainted], inbox_text: str,
             # Hybrid decision: Q-LLM extraction is always deterministic mock,
             # even in --live. Only the P-LLM planner runs live (see Task 13 / HONESTY.md).
             # The taint guarantee holds either way: q_llm.extract returns UNTRUSTED.
+            if step.input_ref not in env:
+                raise ValueError(f"extract step '{step.id}' references "
+                                 f"unknown/not-yet-run step '{step.input_ref}'")
             t = extract(env[step.input_ref].value, step.query or "",
                         mock=True, mock_value=q_mock_value)
             env[step.id] = t
             events.append(TraceEvent(step.id, "extract", f"Q-LLM: {step.query}", tainted=t))
         elif step.kind == "sink":
             args = {k: _resolve(v, env, request_values) for k, v in step.args.items()}
-            decision = check(step.tool, args, registry)
+            try:
+                decision = check(step.tool, args, registry)
+            except KeyError as exc:
+                raise ValueError(f"sink step '{step.id}' uses unknown tool "
+                                 f"'{step.tool}'") from exc
             events.append(TraceEvent(step.id, "sink", f"policy on {step.tool}",
                                      decision=decision))
             if decision.allowed:

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pydantic import ValidationError
 from ikarus.schemas import Plan
 from ikarus.llm_client import LLMClient, LLMError
+from ikarus.tools.registry import ToolRegistry
 
 _SYSTEM = (
     "You are the PLANNER in a security-contained agent. You see ONLY the user's "
@@ -31,18 +32,17 @@ class PlanResult:
     note: str
 
 
-def build_catalog(registry) -> list[dict]:
-    out = []
-    for name in ("read_inbox", "read_pdf", "send_email", "share_doc"):
-        spec = registry.get(name)
-        out.append(
-            {
-                "name": spec.name,
-                "kind": spec.kind.value,
-                "sensitive_args": list(spec.sensitive_args),
-            }
-        )
-    return out
+def build_catalog(registry: ToolRegistry) -> list[dict]:
+    # Derive the catalog from the registry (single source of truth) rather than a
+    # hardcoded name list, so a newly registered tool is visible to the planner.
+    return [
+        {
+            "name": spec.name,
+            "kind": spec.kind.value,
+            "sensitive_args": list(spec.sensitive_args),
+        }
+        for spec in registry.all_specs()
+    ]
 
 
 def plan(
