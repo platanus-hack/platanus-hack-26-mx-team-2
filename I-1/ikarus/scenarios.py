@@ -85,6 +85,28 @@ def pdf_scenario() -> Scenario:
     )
 
 
+def build_scenario(*, name: str, request: str, body: str, trusted_recipient: str,
+                   attacker_address: str, inbox_text: str) -> Scenario:
+    """Construct a Scenario from sandbox input.
+
+    Request values are TRUSTED; `q_mock_value` is the attacker address so the
+    Q-LLM mock 'extracts' it and it is born UNTRUSTED — the same taint story as
+    the built-in scenarios, on the judge's own input.
+    """
+    return Scenario(
+        name=name,
+        request=request,
+        inbox_text=inbox_text,
+        trusted_recipient=trusted_recipient,
+        attacker_address=attacker_address,
+        request_values=MappingProxyType(
+            {"recipient": trusted(trusted_recipient), "body": trusted(body)}),
+        canonical_plan=_canonical_plan(),
+        tainted_plan=_tainted_plan(),
+        q_mock_value=attacker_address,
+    )
+
+
 SCENARIOS = {"email": email_scenario, "pdf": pdf_scenario}
 
 
