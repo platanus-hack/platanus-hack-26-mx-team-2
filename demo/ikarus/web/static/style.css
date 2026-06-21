@@ -83,58 +83,29 @@ h1,h2,h3{text-wrap:balance}
 .site-header{padding:40px 0 24px; border-bottom:1px solid var(--line);
   box-shadow:0 1px 0 rgba(254,117,31,.18)}
 .brand-row{display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin:0; line-height:0}
-.logo{height:48px; width:auto; display:block;
-  filter:drop-shadow(0 0 18px var(--brand-glow)) drop-shadow(0 2px 6px rgba(0,0,0,.6))}
+.logo{height:48px; width:auto; display:block}
 .tagline{margin:14px 0 0; color:var(--muted); font-size:18px; max-width:62ch}
 .tagline strong{color:var(--ink); font-weight:600}
-.pill-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:16px}
+/* Chip kept only for the chat provider indicator. */
 .chip{
   font-family:var(--mono); font-size:12px; font-weight:500; letter-spacing:.02em;
   padding:5px 11px; border-radius:999px; border:1px solid var(--line);
   background:var(--surface-2); color:var(--muted);
 }
-.chip.brand{color:var(--brand); border-color:var(--brand-dim); background:var(--brand-bg);
-  box-shadow:0 0 14px rgba(254,117,31,.15)}
+.chip.brand{color:var(--brand); border-color:var(--brand-dim); background:var(--brand-bg)}
 
-/* ---- Pipeline diagram (the 3-layer story) ----------------------------- */
-.pipeline{
-  margin:28px 0 8px; padding:22px; border:1px solid var(--line);
-  border-radius:var(--radius); background:linear-gradient(180deg,var(--surface),var(--surface-2));
-  box-shadow:var(--shadow);
+/* ---- Pipeline line (compact 3-layer summary) -------------------------- */
+.pipeline-line{
+  margin:18px 0 0; padding:10px 14px; border:1px solid var(--line);
+  border-radius:var(--radius-sm); background:var(--surface-2);
+  color:var(--muted); font-size:13.5px; line-height:1.6;
 }
-.pipeline h2{margin:0 0 4px; font-size:15px; font-weight:600; color:var(--ink)}
-.pipeline .lede{margin:0 0 18px; color:var(--muted); font-size:14px}
-.flow{display:grid; grid-template-columns:1fr auto 1fr auto 1fr; align-items:stretch; gap:10px}
-.layer{
-  position:relative; padding:16px; border-radius:var(--radius-sm);
-  border:1px solid var(--line); background:var(--surface-2);
-  transition:border-color var(--t), transform var(--t);
-}
-.layer:hover{transform:translateY(-2px)}
-.layer .tag{
-  font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.04em;
-  text-transform:uppercase; color:var(--brand); display:block; margin-bottom:6px;
-}
-.layer .name{font-weight:600; font-size:14px; margin:0 0 6px}
-.layer .desc{margin:0; font-size:12.5px; line-height:1.5; color:var(--muted)}
-.layer.guard{border-color:var(--brand-dim); box-shadow:0 0 0 1px rgba(254,117,31,.12) inset}
-.arrow{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; color:var(--muted)}
-.arrow svg{width:26px; height:26px}
-.arrow .taint{
-  font-family:var(--mono); font-size:9.5px; font-weight:600; color:var(--danger);
-  padding:2px 6px; border-radius:999px; background:var(--danger-bg);
-  border:1px solid var(--danger-line); white-space:nowrap;
-  animation:taintpulse 2.6s ease-in-out infinite;
-}
-.arrow.blocked svg{color:var(--danger)}
-@keyframes taintpulse{0%,100%{opacity:.5} 50%{opacity:1}}
+.pipeline-line strong{color:var(--ink); font-weight:600}
+.pipeline-line code{color:var(--danger)}
 
 /* ---- Panels & sections ------------------------------------------------- */
 .panel{padding:30px 0; border-bottom:1px solid var(--line)}
 #scenes{border-radius:var(--radius); scroll-margin-top:18px}
-#scenes.just-updated{animation:flashring 1.3s ease-out}
-@keyframes flashring{0%{box-shadow:0 0 0 2px var(--brand),0 0 26px var(--brand-glow)}
-  100%{box-shadow:0 0 0 0 transparent,0 0 0 transparent}}
 .panel > h2{margin:0 0 6px; font-size:22px; font-weight:700; letter-spacing:-.01em}
 .panel > .hint{margin:0 0 18px; color:var(--muted); font-size:14.5px; max-width:70ch}
 
@@ -143,10 +114,8 @@ h1,h2,h3{text-wrap:balance}
   background:var(--surface); border:1px solid var(--line);
   border-left:3px solid var(--line); border-radius:var(--radius);
   padding:18px 20px; margin:14px 0; box-shadow:var(--shadow);
-  transition:border-color var(--t), transform var(--t);
-  animation:rise var(--t) both;
+  transition:border-color var(--t);
 }
-@keyframes rise{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
 .scene.ok{border-left-color:var(--ok)}
 .scene.danger{border-left-color:var(--danger)}
 .scene-head{display:flex; align-items:flex-start; justify-content:space-between; gap:14px}
@@ -193,8 +162,7 @@ h1,h2,h3{text-wrap:balance}
 .live-trace-head{margin:0; color:var(--muted); font-size:13px}
 .live-trace-head code{color:var(--brand)}
 .live-step{padding:14px 16px; border:1px solid var(--line); border-left:3px solid var(--brand);
-  border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow);
-  animation:rise .4s both}
+  border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow)}
 .live-step.guard{border-left-color:var(--muted)}
 .live-step.naive{border-color:#7f1d1d; background:rgba(127,29,29,.10)}
 .live-step.naive .live-model{color:#fca5a5; border-color:#7f1d1d; background:rgba(127,29,29,.20)}
@@ -229,10 +197,10 @@ h1,h2,h3{text-wrap:balance}
   background:var(--surface-2); transition:border-color var(--t), box-shadow var(--t),
   background var(--t)}
 .flow-stage.active{border-color:var(--brand); background:var(--brand-bg);
-  box-shadow:0 0 0 1px var(--brand-dim) inset, 0 0 18px rgba(254,117,31,.18)}
+  box-shadow:0 0 0 1px var(--brand-dim) inset}
 .flow-dot{width:9px; height:9px; border-radius:50%; background:var(--line);
-  transition:background var(--t), box-shadow var(--t)}
-.flow-stage.active .flow-dot{background:var(--brand); box-shadow:0 0 10px var(--brand)}
+  transition:background var(--t)}
+.flow-stage.active .flow-dot{background:var(--brand)}
 .flow-tag{font-family:var(--mono); font-size:9.5px; letter-spacing:.05em;
   text-transform:uppercase; color:var(--muted)}
 .flow-name{font-weight:600; font-size:12.5px}
@@ -262,7 +230,7 @@ table.ledger tbody tr.pending{opacity:.18; transition:opacity var(--t)}
 .flow-stage.live:hover{border-color:var(--brand-dim)}
 .flow-stage.live.done{opacity:.6}
 .flow-stage.live.naive.active{border-color:#7f1d1d; background:rgba(127,29,29,.14)}
-.flow-stage.live.naive.active .flow-dot{background:#fca5a5; box-shadow:0 0 10px #7f1d1d}
+.flow-stage.live.naive.active .flow-dot{background:#fca5a5}
 .flow-verdict.taint{color:var(--brand); background:var(--brand-bg); border:1px solid var(--brand-dim)}
 .live-walk.walk-on .live-steps > .live-step{display:none}
 .live-walk.walk-on .live-steps > .live-step.is-active{display:block}

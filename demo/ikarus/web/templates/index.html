@@ -24,49 +24,11 @@
       <p class="tagline">Un agente que lee datos no confiables (un correo, un PDF) puede ser
         secuestrado por instrucciones escondidas ahí. Ikarus separa el plan de los datos y un
         guardia <strong>determinista</strong> bloquea cualquier acción contaminada.</p>
-      <div class="pill-row">
-        <span class="chip brand">3 capas: P-LLM · Q-LLM · Intérprete</span>
-        <span class="chip">deny-by-default</span>
-        <span class="chip">modelos reales · LM Studio / OpenAI / Claude</span>
-      </div>
-
-      <!-- The 3-layer story -->
-      <section class="pipeline" aria-label="Arquitectura de tres capas">
-        <h2>Cómo se contiene</h2>
-        <p class="lede">El plan nunca toca los datos sucios, y todo lo que se extrae de
-          fuentes externas nace <code>UNTRUSTED</code>. Un guardia determinista bloquea
-          cualquier acción peligrosa cuyo argumento esté contaminado.</p>
-        <div class="flow">
-          <div class="layer">
-            <span class="tag">Capa 1</span>
-            <p class="name">P-LLM · planificador</p>
-            <p class="desc">Solo ve la petición confiable + el catálogo de herramientas.
-              <strong>Nunca lee el correo</strong>, así que una inyección no entra al plan.</p>
-          </div>
-          <div class="arrow" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </div>
-          <div class="layer">
-            <span class="tag">Capa 2</span>
-            <p class="name">Q-LLM · cuarentena</p>
-            <p class="desc">Procesa los datos sucios y solo extrae. Su salida
-              <strong>nace etiquetada UNTRUSTED</strong> pase lo que pase.</p>
-          </div>
-          <div class="arrow blocked">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            <span class="taint">taint →</span>
-          </div>
-          <div class="layer guard">
-            <span class="tag">Capa 3</span>
-            <p class="name">Intérprete · guardia</p>
-            <p class="desc">Propaga el taint por los valores y, antes de cada sink,
-              <strong>bloquea si cualquier argumento es UNTRUSTED</strong>. No es un LLM:
-              no se le convence con palabras.</p>
-          </div>
-        </div>
-      </section>
+      <p class="pipeline-line">
+        <strong>P-LLM</strong> planea (no ve los datos) →
+        <strong>Q-LLM</strong> extrae → <code>UNTRUSTED</code> →
+        <strong>Guardia</strong> bloquea si algún argumento está contaminado.
+      </p>
     </header>
 
     <section class="panel" id="demo">
