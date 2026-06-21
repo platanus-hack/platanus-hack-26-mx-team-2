@@ -30,6 +30,10 @@ class IkarusApp:
     def run_scene(self, scene: int, scenario_name: str, mock: bool = True,
                   client=None) -> dict:
         scenario = self._scenarios.create(scenario_name)
+        return self.run_scenario(scene, scenario, mock=mock, client=client)
+
+    def run_scenario(self, scene: int, scenario, mock: bool = True,
+                     client=None) -> dict:
         if scene == 3:
             res = run_naive(scenario.request, scenario.inbox_text,
                             scenario.trusted_recipient, mock=mock,
@@ -37,14 +41,16 @@ class IkarusApp:
             text = (f"NAIVE AGENT sent to: {res.recipient}  "
                     f"(hijacked={res.hijacked})\n{res.sink_log}")
             return {"text": text, "blocked": False, "executed_sinks": [],
-                    "used_fallback": False, "naive_recipient": res.recipient}
+                    "used_fallback": False, "naive_recipient": res.recipient,
+                    "result": None, "hijacked": res.hijacked}
         plan, used_fallback = self._select_plan(scene, scenario, mock, client)
         result = self._interpreter.run(plan, scenario.request_values,
                                        scenario.inbox_text,
                                        q_mock_value=scenario.q_mock_value)
         return {"text": self._renderer.render(result), "blocked": result.blocked,
                 "executed_sinks": result.executed_sinks,
-                "used_fallback": used_fallback, "naive_recipient": None}
+                "used_fallback": used_fallback, "naive_recipient": None,
+                "result": result, "hijacked": False}
 
     def _select_plan(self, scene: int, scenario, mock: bool, client):
         """Scene 1: hybrid live wiring — the real P-LLM emits the plan in live mode.

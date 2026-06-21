@@ -2,6 +2,7 @@ from ikarus.app import IkarusApp
 from ikarus.composition import CompositionRoot
 from ikarus.config import load_settings
 from ikarus.tools.email_sink import MockEmailSink
+from ikarus.scenarios import default_scenarios
 
 
 class _SpySink:
@@ -77,3 +78,31 @@ def test_app_scene1_live_falls_back_on_invalid_plan():
     out = _build().run_scene(1, "email", mock=False, client=FakeClient())
     assert out["used_fallback"] is True
     assert out["blocked"] is False
+
+
+def test_run_scenario_accepts_instance_and_returns_structured_result():
+    scenario = default_scenarios().create("email")
+    out = _build().run_scenario(2, scenario, mock=True)
+    assert out["blocked"] is True
+    assert out["result"] is not None
+    assert any(e.decision is not None and not e.decision.allowed
+               for e in out["result"].events)
+
+def test_run_scenario_scene1_allows_and_exposes_result():
+    scenario = default_scenarios().create("email")
+    out = _build().run_scenario(1, scenario, mock=True)
+    assert out["blocked"] is False
+    assert out["result"].blocked is False
+    assert "send_email" in out["executed_sinks"]
+
+def test_run_scenario_scene3_has_no_result_but_hijacked_flag():
+    scenario = default_scenarios().create("email")
+    out = _build().run_scenario(3, scenario, mock=True)
+    assert out["result"] is None
+    assert out["hijacked"] is True
+    assert out["naive_recipient"] == "attacker@evil.com"
+
+def test_run_scene_still_delegates():
+    out = _build().run_scene(2, "email", mock=True)
+    assert out["blocked"] is True
+    assert out["result"] is not None
