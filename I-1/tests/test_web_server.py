@@ -175,3 +175,9 @@ def test_provider_picker_sits_above_the_live_run():
     html = r.text
     # The model/provider control must come BEFORE the live-run button, not at the bottom.
     assert html.index('name="provider"') < html.index("Ejecutar en vivo")
+
+
+def test_live_flow_accepts_pdf_scenario():
+    r = client.post("/flow/live", data={"scenario": "pdf"})
+    assert r.status_code == 200
+    assert "Capa 1" in r.text  # step rendered for the pdf scenario

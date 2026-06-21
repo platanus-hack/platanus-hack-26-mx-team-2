@@ -84,13 +84,19 @@
       </div>
 
       <div class="live-run">
+        <label class="scenario-pick">Escenario
+          <select name="scenario" id="scenario-select">
+            <option value="email">Correo (leer inbox → send_email)</option>
+            <option value="pdf">PDF (leer documento → share_doc)</option>
+          </select>
+        </label>
         <button class="flow-btn" type="button" hx-post="/flow/live"
-                hx-target="#live-result" hx-swap="innerHTML" hx-disabled-elt="this">
+                hx-target="#live-result" hx-swap="innerHTML" hx-disabled-elt="this"
+                hx-include="#scenario-select">
           <span class="label-idle">Ejecutar en vivo ▶</span>
           <span class="label-busy">Ejecutando modelos…</span>
         </button>
-        <span class="hint">Corre P-LLM y Q-LLM <strong>reales</strong> (según el proveedor de la
-          sección Chat) + guardia determinista. Sin proveedor real es <code>mock</code>.
+        <span class="hint">Corre P-LLM y Q-LLM <strong>reales</strong> (según el proveedor seleccionado arriba) + guardia determinista. Sin proveedor real es <code>mock</code>.
           Con modelos locales tarda unos segundos; usa uno ágil (p. ej. <code>gemma-3-12b</code>,
           <code>gpt-oss-20b</code>) — los de razonamiento son lentos.</span>
       </div>

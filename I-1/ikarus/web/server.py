@@ -173,32 +173,33 @@ def create_app() -> FastAPI:
             "log_req": log_req, "log_resp": log_resp,
         })
 
-    def _live_scenario() -> dict:
-        s = default_scenarios().create("email")
+    def _live_scenario(name: str = "email") -> dict:
+        n = name if name in default_scenarios() else "email"
+        s = default_scenarios().create(n)
         return {"request": s.request, "inbox_text": s.inbox_text}
 
     def _live_error(request: Request, exc) -> HTMLResponse:
         return templates.TemplateResponse(request, "_flow_error.html", {"error": str(exc)})
 
     @api.post("/flow/live", response_class=HTMLResponse)  # step 1 — P-LLM
-    def flow_live(request: Request):
+    def flow_live(request: Request, scenario: str = Form("email")):
         settings = _effective_settings()
         try:
-            step = live_plan(settings, _live_scenario())
+            step = live_plan(settings, _live_scenario(scenario))
         except (ChatError, ValueError) as exc:
             return _live_error(request, exc)
         return templates.TemplateResponse(request, "_flow_live.html", {
-            "step": step, "provider": settings.llm_provider})
+            "step": step, "provider": settings.llm_provider, "scenario": scenario})
 
     @api.post("/flow/live/extract", response_class=HTMLResponse)  # step 2 — Q-LLM
-    def flow_live_extract(request: Request):
+    def flow_live_extract(request: Request, scenario: str = Form("email")):
         settings = _effective_settings()
         try:
-            step, extracted = live_extract(settings, _live_scenario())
+            step, extracted = live_extract(settings, _live_scenario(scenario))
         except (ChatError, ValueError) as exc:
             return _live_error(request, exc)
         return templates.TemplateResponse(request, "_flow_extract.html", {
-            "step": step, "extracted": extracted})
+            "step": step, "extracted": extracted, "scenario": scenario})
 
     @api.post("/flow/live/guard", response_class=HTMLResponse)  # step 3 — guard (deterministic)
     def flow_live_guard(request: Request, addr: str = Form("")):
