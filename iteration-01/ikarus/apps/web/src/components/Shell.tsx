@@ -6,7 +6,6 @@ import { useAuth } from "../lib/auth";
 const NAV: { to: string; label: string; icon: Icon }[] = [
   { to: "/runs", label: "Traces", icon: Pulse },
   { to: "/connections", label: "Connections", icon: PlugsConnected },
-  { to: "/policies", label: "Policies", icon: ShieldChevron },
   { to: "/models", label: "Models", icon: Robot },
   { to: "/connect", label: "Connect", icon: LinkSimple },
 ];

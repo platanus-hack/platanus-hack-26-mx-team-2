@@ -4,6 +4,7 @@ import { db } from "../db.js";
 import { encryptSecret, last4, redactSecret } from "../crypto.js";
 import { PrismaRunStore } from "../store/run-store.js";
 import { introspectConnection, isMockEndpoint, toCatalogJson } from "../store/catalog.js";
+import { startConnectionOAuth } from "../oauth.js";
 
 /**
  * REST API for the SPA. Plain node:http (shares the process with the MCP raw
@@ -115,6 +116,15 @@ const routes: Route[] = [
       await db().mcpConnection.update({ where: { id: conn.id }, data: { status: "error" } });
       return { status: "error", error: err instanceof Error ? err.message : String(err) };
     }
+  }),
+  // Begin the MCP OAuth flow for a connection: returns the URL the browser must
+  // visit. The upstream redirects back to /oauth/callback, which stores the token.
+  route("POST", "/api/connections/:id/oauth/start", async ({ user, params }) => {
+    const conn = await db().mcpConnection.findFirst({ where: { id: params.id, userId: user.id } });
+    if (!conn) throw new HttpError(404, "connection not found");
+    if (isMockEndpoint(conn.endpoint)) throw new HttpError(400, "mock connections have no OAuth");
+    const authorizationUrl = await startConnectionOAuth(conn, user.id);
+    return { authorizationUrl: authorizationUrl.toString() };
   }),
   // Return the mapped tool catalog: cached if present, else a fresh introspect.
   route("GET", "/api/connections/:id/catalog", async ({ user, params }) => {

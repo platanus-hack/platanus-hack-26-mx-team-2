@@ -4,8 +4,8 @@ import { Shell } from "./components/Shell";
 import { Spinner } from "./components/ui";
 import { Login } from "./pages/Login";
 import { Connections } from "./pages/Connections";
+import { ConnectionDetail } from "./pages/ConnectionDetail";
 import { Models } from "./pages/Models";
-import { Policies } from "./pages/Policies";
 import { Runs } from "./pages/Runs";
 import { RunDetailPage } from "./pages/RunDetail";
 import { Connect } from "./pages/Connect";
@@ -35,7 +35,7 @@ export function App() {
         <Route path="/runs" element={<Runs />} />
         <Route path="/runs/:id" element={<RunDetailPage />} />
         <Route path="/connections" element={<Connections />} />
-        <Route path="/policies" element={<Policies />} />
+        <Route path="/connections/:id" element={<ConnectionDetail />} />
         <Route path="/models" element={<Models />} />
         <Route path="/connect" element={<Connect />} />
         <Route path="*" element={<Navigate to="/runs" replace />} />

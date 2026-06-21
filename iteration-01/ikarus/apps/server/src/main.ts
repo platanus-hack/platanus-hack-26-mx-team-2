@@ -6,6 +6,7 @@ import { createMcpServer, type RunTaskDeps } from "@ikarus/gateway";
 import { wireDemoSystem } from "./wire.js";
 import { resolveWorkspaceOptions, buildUserWiredSystem, type UserSystem } from "./workspace.js";
 import { handleApi } from "./api/router.js";
+import { handleOAuthCallback, isOAuthCallback } from "./oauth.js";
 import { AuthError, verifyMcpKey } from "./auth.js";
 import { closeDb, hasDatabase } from "./db.js";
 
@@ -76,6 +77,11 @@ const server = http.createServer(async (req, res) => {
   }
   if (url.pathname === "/health") {
     res.writeHead(200, { "content-type": "text/plain" }).end("ok");
+    return;
+  }
+  // OAuth redirect target — authenticated by the unguessable `state`, not a JWT.
+  if (isOAuthCallback(url.pathname)) {
+    await handleOAuthCallback(req, res, url);
     return;
   }
 

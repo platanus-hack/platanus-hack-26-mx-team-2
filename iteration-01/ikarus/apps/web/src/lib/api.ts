@@ -115,6 +115,8 @@ export const api = {
     remove: (id: string) => request<{ ok: true }>("DELETE", `/api/connections/${id}`),
     verify: (id: string) => request<VerifyResult>("POST", `/api/connections/${id}/verify`),
     catalog: (id: string) => request<CatalogTool[]>("GET", `/api/connections/${id}/catalog`),
+    oauthStart: (id: string) =>
+      request<{ authorizationUrl: string }>("POST", `/api/connections/${id}/oauth/start`),
   },
   policies: {
     list: () => request<PolicyRow[]>("GET", "/api/policies"),
