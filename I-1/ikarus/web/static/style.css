@@ -1,33 +1,227 @@
-:root{--bg:#0f1419;--panel:#172029;--ink:#e6edf3;--muted:#9fb0bf;
-      --trusted:#3fb950;--untrusted:#f85149;--guard:#58a6ff;--line:#2a3640;}
+/* ===========================================================================
+   Ikarus — web UI design system
+   Palette: "code dark" base + IKARUS brand orange (#FE751F).
+   Semantics are reserved: green = TRUSTED/ALLOWED/PASS, red = UNTRUSTED/BLOCK.
+   Type: Fira Sans (body) + Fira Code (ledger/tokens). All assets local/offline.
+   =========================================================================== */
+
+/* ---- Fonts (self-hosted, no network) ---------------------------------- */
+@font-face{font-family:'Fira Sans';font-style:normal;font-weight:300;font-display:swap;
+  src:url('/static/fonts/fira-sans-300.woff2') format('woff2')}
+@font-face{font-family:'Fira Sans';font-style:normal;font-weight:400;font-display:swap;
+  src:url('/static/fonts/fira-sans-400.woff2') format('woff2')}
+@font-face{font-family:'Fira Sans';font-style:normal;font-weight:500;font-display:swap;
+  src:url('/static/fonts/fira-sans-500.woff2') format('woff2')}
+@font-face{font-family:'Fira Sans';font-style:normal;font-weight:600;font-display:swap;
+  src:url('/static/fonts/fira-sans-600.woff2') format('woff2')}
+@font-face{font-family:'Fira Sans';font-style:normal;font-weight:700;font-display:swap;
+  src:url('/static/fonts/fira-sans-700.woff2') format('woff2')}
+@font-face{font-family:'Fira Code';font-style:normal;font-weight:400;font-display:swap;
+  src:url('/static/fonts/fira-code-400.woff2') format('woff2')}
+@font-face{font-family:'Fira Code';font-style:normal;font-weight:500;font-display:swap;
+  src:url('/static/fonts/fira-code-500.woff2') format('woff2')}
+@font-face{font-family:'Fira Code';font-style:normal;font-weight:600;font-display:swap;
+  src:url('/static/fonts/fira-code-600.woff2') format('woff2')}
+@font-face{font-family:'Fira Code';font-style:normal;font-weight:700;font-display:swap;
+  src:url('/static/fonts/fira-code-700.woff2') format('woff2')}
+
+/* ---- Design tokens ----------------------------------------------------- */
+:root{
+  --bg:#0F172A; --surface:#1E293B; --surface-2:#172132; --elevated:#243449;
+  --brand:#FE751F; --brand-dim:#C25A12; --brand-bg:rgba(254,117,31,.12);
+  --ink:#F8FAFC; --muted:#94A3B8; --line:#2A3A4F; --line-soft:#22304a;
+  --ok:#22C55E; --ok-bg:rgba(34,197,94,.13); --ok-line:rgba(34,197,94,.4);
+  --danger:#EF4444; --danger-bg:rgba(239,68,68,.13); --danger-line:rgba(239,68,68,.45);
+  --mono:'Fira Code',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:'Fira Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+  --radius:12px; --radius-sm:8px;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.28);
+  --t:200ms cubic-bezier(.4,0,.2,1);
+  /* z-index scale */
+  --z-base:0; --z-raised:10; --z-sticky:20; --z-overlay:50;
+}
+
 *{box-sizing:border-box}
-body{margin:0;font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;
-     background:var(--bg);color:var(--ink)}
-header{padding:24px 32px;border-bottom:1px solid var(--line)}
-header h1{margin:0 0 4px}
-header p,.hint,.note,footer p{color:var(--muted)}
-.panel{padding:20px 32px;border-bottom:1px solid var(--line)}
-.scene{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--guard);
-       border-radius:8px;padding:14px 16px;margin:12px 0}
-.scene.allowed{border-left-color:var(--trusted)}
-.scene.blocked{border-left-color:var(--untrusted)}
-.scene h3{margin:0 0 10px;font-size:15px}
-table.ledger{width:100%;border-collapse:collapse;font-size:13px}
-table.ledger caption{text-align:left;color:var(--muted);padding-bottom:6px}
-table.ledger th,table.ledger td{border:1px solid var(--line);padding:6px 8px;text-align:left;
-       vertical-align:top}
-table.ledger th{color:var(--muted);font-weight:600}
-.trusted{color:var(--trusted);font-weight:700}
-.untrusted{color:var(--untrusted);font-weight:700}
-.pass{color:var(--trusted)} .block{color:var(--untrusted)}
-.verdict{font-weight:800;margin:10px 0 0}
-.verdict.pass{color:var(--trusted)} .verdict.block{color:var(--untrusted)}
-.naive-line.hijacked{color:var(--untrusted)} .naive-line.safe{color:var(--trusted)}
-form{display:grid;gap:10px;max-width:640px}
-label{display:grid;gap:4px;color:var(--muted);font-size:13px}
-input,textarea{background:#0b1117;color:var(--ink);border:1px solid var(--line);
-       border-radius:6px;padding:8px;font:inherit}
-button{justify-self:start;background:var(--guard);color:#06121f;border:0;border-radius:6px;
-       padding:9px 16px;font-weight:700;cursor:pointer}
-code{background:#0b1117;padding:1px 5px;border-radius:4px}
-footer{padding:16px 32px}
+html{scroll-behavior:smooth; color-scheme:dark}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:400 16px/1.6 var(--sans); -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(900px 480px at 88% -8%, rgba(254,117,31,.10), transparent 60%),
+    radial-gradient(720px 420px at -6% 4%, rgba(88,166,255,.06), transparent 55%);
+}
+.wrap{max-width:1040px; margin:0 auto; padding:0 24px}
+a{color:var(--brand)}
+code,kbd{font-family:var(--mono); font-size:.88em}
+h1,h2,h3{text-wrap:balance}
+[id]{scroll-margin-top:16px}
+
+/* Skip link — visually hidden until focused */
+.skip-link{
+  position:absolute; left:12px; top:-48px; z-index:var(--z-overlay);
+  background:var(--brand); color:#1a0c02; font-weight:700; font-size:13px;
+  padding:9px 14px; border-radius:var(--radius-sm); transition:top var(--t);
+}
+.skip-link:focus{top:12px}
+
+/* ---- Header ------------------------------------------------------------ */
+.site-header{padding:40px 0 24px; border-bottom:1px solid var(--line)}
+.brand-row{display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin:0; line-height:0}
+.logo{height:46px; width:auto; display:block; filter:drop-shadow(0 2px 10px rgba(254,117,31,.25))}
+.tagline{margin:14px 0 0; color:var(--muted); font-size:18px; max-width:62ch}
+.tagline strong{color:var(--ink); font-weight:600}
+.pill-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:16px}
+.chip{
+  font-family:var(--mono); font-size:12px; font-weight:500; letter-spacing:.02em;
+  padding:5px 11px; border-radius:999px; border:1px solid var(--line);
+  background:var(--surface-2); color:var(--muted);
+}
+.chip.brand{color:var(--brand); border-color:var(--brand-dim); background:var(--brand-bg)}
+
+/* ---- Pipeline diagram (the 3-layer story) ----------------------------- */
+.pipeline{
+  margin:28px 0 8px; padding:22px; border:1px solid var(--line);
+  border-radius:var(--radius); background:linear-gradient(180deg,var(--surface),var(--surface-2));
+  box-shadow:var(--shadow);
+}
+.pipeline h2{margin:0 0 4px; font-size:15px; font-weight:600; color:var(--ink)}
+.pipeline .lede{margin:0 0 18px; color:var(--muted); font-size:14px}
+.flow{display:grid; grid-template-columns:1fr auto 1fr auto 1fr; align-items:stretch; gap:10px}
+.layer{
+  position:relative; padding:16px; border-radius:var(--radius-sm);
+  border:1px solid var(--line); background:var(--surface-2);
+  transition:border-color var(--t), transform var(--t);
+}
+.layer:hover{transform:translateY(-2px)}
+.layer .tag{
+  font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.04em;
+  text-transform:uppercase; color:var(--brand); display:block; margin-bottom:6px;
+}
+.layer .name{font-weight:600; font-size:14px; margin:0 0 6px}
+.layer .desc{margin:0; font-size:12.5px; line-height:1.5; color:var(--muted)}
+.layer.guard{border-color:var(--brand-dim); box-shadow:0 0 0 1px rgba(254,117,31,.12) inset}
+.arrow{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; color:var(--muted)}
+.arrow svg{width:26px; height:26px}
+.arrow .taint{
+  font-family:var(--mono); font-size:9.5px; font-weight:600; color:var(--danger);
+  padding:2px 6px; border-radius:999px; background:var(--danger-bg);
+  border:1px solid var(--danger-line); white-space:nowrap;
+  animation:taintpulse 2.6s ease-in-out infinite;
+}
+.arrow.blocked svg{color:var(--danger)}
+@keyframes taintpulse{0%,100%{opacity:.5} 50%{opacity:1}}
+
+/* ---- Panels & sections ------------------------------------------------- */
+.panel{padding:30px 0; border-bottom:1px solid var(--line)}
+.panel > h2{margin:0 0 6px; font-size:22px; font-weight:700; letter-spacing:-.01em}
+.panel > .hint{margin:0 0 18px; color:var(--muted); font-size:14.5px; max-width:70ch}
+
+/* ---- Scene cards ------------------------------------------------------- */
+.scene{
+  background:var(--surface); border:1px solid var(--line);
+  border-left:3px solid var(--line); border-radius:var(--radius);
+  padding:18px 20px; margin:14px 0; box-shadow:var(--shadow);
+  transition:border-color var(--t), transform var(--t);
+  animation:rise var(--t) both;
+}
+@keyframes rise{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+.scene.ok{border-left-color:var(--ok)}
+.scene.danger{border-left-color:var(--danger)}
+.scene-head{display:flex; align-items:flex-start; justify-content:space-between; gap:14px}
+.scene-head h3{margin:0; font-size:16px; font-weight:600}
+.scene-sub{margin:4px 0 0; color:var(--muted); font-size:13.5px; line-height:1.5}
+.scene-id{
+  font-family:var(--mono); font-size:11px; color:var(--muted);
+  border:1px solid var(--line); border-radius:6px; padding:2px 7px; margin-right:8px;
+}
+
+/* ---- Status badges ----------------------------------------------------- */
+.badge{
+  flex:none; font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:.05em;
+  padding:6px 12px; border-radius:999px; display:inline-flex; align-items:center; gap:7px;
+  border:1px solid; white-space:nowrap;
+}
+.badge::before{content:''; width:8px; height:8px; border-radius:50%; background:currentColor}
+.badge.ok{color:var(--ok); background:var(--ok-bg); border-color:var(--ok-line)}
+.badge.danger{color:var(--danger); background:var(--danger-bg); border-color:var(--danger-line)}
+
+/* ---- Taint ledger ------------------------------------------------------ */
+.ledger-wrap{overflow-x:auto; margin-top:14px; border:1px solid var(--line); border-radius:var(--radius-sm)}
+table.ledger{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12.5px;
+  font-variant-numeric:tabular-nums}
+table.ledger caption{
+  text-align:left; color:var(--muted); padding:9px 12px; font-family:var(--sans);
+  font-size:12px; letter-spacing:.06em; text-transform:uppercase; font-weight:600;
+  border-bottom:1px solid var(--line);
+}
+table.ledger th,table.ledger td{padding:8px 12px; text-align:left; vertical-align:top;
+  border-bottom:1px solid var(--line-soft)}
+table.ledger tbody tr:last-child td{border-bottom:0}
+table.ledger th{color:var(--muted); font-weight:600; font-family:var(--sans); font-size:11px;
+  text-transform:uppercase; letter-spacing:.05em; background:var(--surface-2)}
+table.ledger tbody tr:hover{background:rgba(255,255,255,.02)}
+.tt{font-weight:700; padding:1px 7px; border-radius:5px; font-size:11px}
+.trusted{color:var(--ok); background:var(--ok-bg)}
+.untrusted{color:var(--danger); background:var(--danger-bg)}
+.pol-pass{color:var(--ok); font-weight:600}
+.pol-block{color:var(--danger); font-weight:600}
+
+/* ---- Verdict & naive line --------------------------------------------- */
+.verdict{
+  margin:14px 0 0; padding:11px 14px; border-radius:var(--radius-sm);
+  font-family:var(--mono); font-weight:700; font-size:13px; letter-spacing:.04em;
+  display:flex; align-items:center; gap:9px; border:1px solid;
+}
+.verdict svg{width:17px; height:17px; flex:none}
+.verdict.pass{color:var(--ok); background:var(--ok-bg); border-color:var(--ok-line)}
+.verdict.block{color:var(--danger); background:var(--danger-bg); border-color:var(--danger-line)}
+.naive-line{margin:12px 0 0; padding:12px 14px; border-radius:var(--radius-sm);
+  border:1px solid var(--line); background:var(--surface-2); font-size:14px}
+.naive-line.hijacked{color:var(--danger); border-color:var(--danger-line); background:var(--danger-bg)}
+.naive-line.safe{color:var(--ok); border-color:var(--ok-line); background:var(--ok-bg)}
+.note{margin:8px 0 0; color:var(--muted); font-family:var(--mono); font-size:12px}
+
+/* ---- Sandbox form ------------------------------------------------------ */
+form{display:grid; gap:14px; max-width:680px}
+label{display:grid; gap:6px; color:var(--muted); font-size:13px; font-weight:500}
+input,textarea{
+  background:var(--surface-2); color:var(--ink); border:1px solid var(--line);
+  border-radius:var(--radius-sm); padding:10px 12px; font:400 14px/1.5 var(--sans);
+  transition:border-color var(--t), box-shadow var(--t);
+}
+textarea{font-family:var(--mono); font-size:13px; resize:vertical}
+input::placeholder,textarea::placeholder{color:var(--muted); opacity:.7}
+input:focus,textarea:focus{outline:none; border-color:var(--brand);
+  box-shadow:0 0 0 3px var(--brand-bg)}
+button{
+  justify-self:start; background:var(--brand); color:#1a0c02; border:0;
+  border-radius:var(--radius-sm); padding:11px 20px; font:700 14px var(--sans);
+  cursor:pointer; transition:background var(--t), transform var(--t), box-shadow var(--t);
+  box-shadow:0 4px 14px rgba(254,117,31,.28); touch-action:manipulation;
+}
+button:hover{background:#ff8534}
+button:active{transform:translateY(1px)}
+
+/* ---- Footer ------------------------------------------------------------ */
+.site-footer{padding:24px 0 48px; color:var(--muted); font-size:13px}
+.site-footer code{color:var(--brand)}
+
+/* ---- Focus & a11y ------------------------------------------------------ */
+:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:4px}
+.htmx-request button{opacity:.7; pointer-events:none}
+
+/* ---- Responsive -------------------------------------------------------- */
+@media (max-width:720px){
+  .flow{grid-template-columns:1fr; }
+  .arrow{flex-direction:row; padding:2px 0}
+  .arrow svg{transform:rotate(90deg)}
+  .scene-head{flex-direction:column}
+  .tagline{font-size:16px}
+  .panel > h2{font-size:19px}
+}
+
+/* ---- Reduced motion ---------------------------------------------------- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms !important; animation-iteration-count:1 !important;
+    transition-duration:.001ms !important; scroll-behavior:auto !important}
+}

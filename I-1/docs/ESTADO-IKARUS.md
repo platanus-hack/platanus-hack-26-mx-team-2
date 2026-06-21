@@ -1,8 +1,8 @@
 # Estado de Ikarus — contexto para retomar
 
 > Documento de traspaso. Léelo antes de tocar nada. Última actualización: 2026-06-21
-> (refactor SOLID/OOP completado · interfaz web construida · correo real Resend probado ·
-> `ikarus-impl` fusionada a `develop`).
+> (refactor SOLID/OOP completado · interfaz web construida y **rediseñada** (design system
+> de marca, todo offline) · correo real Resend probado · `ikarus-impl` fusionada a `develop`).
 
 ## Qué es
 
@@ -160,7 +160,7 @@ atómicos, suite verde y demo intacto en cada paso. **Hecho:**
 - **Credenciales por `.env` local (gitignored):** hay un `I-1/.env` (NO se commitea) para pruebas.
   La key usada en pruebas quedó expuesta en el chat → **ROTARLA** es pendiente del dueño.
 
-## Interfaz web (UI) — CONSTRUIDA
+## Interfaz web (UI) — CONSTRUIDA y REDISEÑADA
 
 FastAPI + HTMX bajo `ikarus/web/`. Mock-only (no requiere modelo). Dos vistas:
 - **Demo guiado:** las 3 escenas del escenario `email` con Taint Ledger + veredictos.
@@ -170,6 +170,25 @@ FastAPI + HTMX bajo `ikarus/web/`. Mock-only (no requiere modelo). Dos vistas:
 - Correr: `pip install -e ".[web]"` y `python3 -m ikarus.web` (http://127.0.0.1:8000).
 - Construida con la skill `writing-plans` + ejecución por subagentes; plan en
   `docs/superpowers/plans/2026-06-21-ikarus-web-ui.md` (6 tareas, todas hechas).
+
+### Rediseño UI (skill `ui-ux-pro-max`) — HECHO (2026-06-21)
+Aplicado un **design system de marca** sobre la UI existente (motor y tests intactos):
+- **Copy en español** (las etiquetas del motor —`TRUSTED`/`UNTRUSTED`/`PASS`/`BLOCK` y el
+  veredicto `ALLOWED`/`BLOCKED`— se quedan en inglés a propósito; son tokens del intérprete).
+- **Marca:** logo IKARUS naranja recortado (`static/logo-wordmark.png`, fondo transparente) +
+  paleta naranja `#FE751F` para identidad; **verde/rojo reservados a la semántica** de seguridad
+  (TRUSTED/ALLOWED/PASS vs UNTRUSTED/BLOCK/hijacked).
+- **Historia de las 3 capas:** diagrama P-LLM → Q-LLM → Intérprete con el `taint →` fluyendo al
+  guardia (en `index.html`).
+- **Componentes:** badges de estado (`ALLOWED`/`BLOCKED`/`HIJACKED`), pills `TRUSTED`/`UNTRUSTED`
+  en el ledger, banners de veredicto con íconos SVG (sin emojis), focus visible, responsive,
+  `prefers-reduced-motion`.
+- **Tipografía:** Fira Sans (cuerpo) + Fira Code (ledger/tokens).
+- **TODO OFFLINE / self-hosted:** las 9 fuentes (`static/fonts/*.woff2`) y **htmx**
+  (`static/vendor/htmx.min.js`) se sirven desde el repo. Antes htmx venía de `unpkg` por CDN; ya
+  no hay dependencias de red para correr la demo.
+- **`views.py`** ganó claves de vista (`status`/`status_class`, `subtitle`, `layer`); `SCENE_TITLES`
+  ahora en español. Único test tocado: `test_web_server` (`"Scene 1"` → `"Escena 1"`). **145 passed.**
 
 ## Estado del código
 
