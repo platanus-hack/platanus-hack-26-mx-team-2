@@ -34,8 +34,7 @@ def create_app() -> FastAPI:
     @api.get("/", response_class=HTMLResponse)
     def index(request: Request):
         scenario = default_scenarios().create("email")
-        return templates.TemplateResponse("index.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "index.html", {
             "scenes": _run_scenes_for(scenario),
             "default_request": scenario.request,
             "default_recipient": scenario.trusted_recipient,
@@ -52,8 +51,8 @@ def create_app() -> FastAPI:
             name="custom", request=user_request, body=body,
             trusted_recipient=trusted_recipient, attacker_address=attacker,
             inbox_text=inbox_text)
-        return templates.TemplateResponse("_scenes.html", {
-            "request": request, "scenes": _run_scenes_for(scenario)})
+        return templates.TemplateResponse(request, "_scenes.html", {
+            "scenes": _run_scenes_for(scenario)})
 
     return api
 
