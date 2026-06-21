@@ -1,3 +1,4 @@
+import io
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -8,7 +9,7 @@ def verdict_line(result: ExecutionResult) -> str:
     return "BLOCKED" if result.blocked else "ALLOWED"
 
 def render_trace(result: ExecutionResult) -> str:
-    console = Console(record=True, width=100)
+    console = Console(record=True, width=100, file=io.StringIO())
     table = Table(title="Ikarus — Taint Ledger")
     table.add_column("Step"); table.add_column("Kind")
     table.add_column("Detail"); table.add_column("Trust"); table.add_column("Policy")

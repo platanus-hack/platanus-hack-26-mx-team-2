@@ -34,3 +34,9 @@ def test_main_runs_all_scenes_returns_zero(capsys):
     assert code == 0
     captured = capsys.readouterr()
     assert "VERDICT" in captured.out
+
+def test_main_renders_each_scene_exactly_once(capsys):
+    code = main(["--scene", "1", "--scenario", "email", "--mock"])
+    assert code == 0
+    captured = capsys.readouterr()
+    assert captured.out.count("Taint Ledger") == 1
