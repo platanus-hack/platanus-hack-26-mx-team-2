@@ -21,3 +21,5 @@ Task 5: complete (commits 43f5efb..f90acc6, review clean)
   - Minor: missing-arg + unknown-tool branches untested (defensive paths beyond brief)
 Task 6: complete (commits 300bf27..d9fd320, implemented; review pending)
   Task 6 review: clean (Minors: broad except, no input validation — plan-mandated)
+Task 7: complete (commits 5c49468..75a3224, review clean)
+  - Minor: LLMError fallback branch untested (structurally identical, shared return); no Extraction schema validation of returned dict
