@@ -34,3 +34,5 @@ Task 11: complete (commits 6b809dd..f685360, review clean)
   - Minor: pdf_scenario plan-shape not directly tested (same helpers as email); bare dict types
 Task 12: complete (commits 29b14d8..62eb104, review clean after 1 test-add)
   - Important (FIXED): ALLOWED/TRUSTED render path now unit-tested (commit 62eb104)
+Task 13: complete (commits 2121c6d..08ef761, review clean) — FULL DEMO WORKS, 49 tests pass
+  - Minor: _select_plan implicit mock-default coupling; vestigial --mock flag
