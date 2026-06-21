@@ -132,9 +132,11 @@
     this.status.textContent = '';
   };
 
-  Flow.prototype.step = function () {
-    this.stopTimer();
-    if (this.i + 1 >= this.beats.length) { this.showFinal(); return; }
+  // advance() runs one beat WITHOUT touching the timer, so it is safe to call
+  // both from a manual "Paso" click and from play()'s interval. Returns false
+  // when there are no beats left.
+  Flow.prototype.advance = function () {
+    if (this.i + 1 >= this.beats.length) return false;
     this.i++;
     var beat = this.beats[this.i];
     this.lite(beat.stage);
@@ -142,6 +144,12 @@
     this.status.textContent = this.i === 0
       ? 'P-LLM emite el plan (sin ver los datos)'
       : 'Paso ' + this.i + ' / ' + (this.beats.length - 1);
+    return true;
+  };
+
+  Flow.prototype.step = function () {
+    this.stopTimer();  // manual stepping cancels any running playback
+    if (!this.advance()) this.showFinal();
   };
 
   Flow.prototype.play = function () {
@@ -149,13 +157,11 @@
     this.reset();
     var self = this;
     this._t = setInterval(function () {
-      if (self.i + 1 >= self.beats.length) {
+      if (!self.advance()) {  // done — never calls stopTimer indirectly
         self.stopTimer();
         self.clearStages();
         self.status.textContent = 'Flujo completo';
-        return;
       }
-      self.step();
     }, CADENCE);
   };
 
