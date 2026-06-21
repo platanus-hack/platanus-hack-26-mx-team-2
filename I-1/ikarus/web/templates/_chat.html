@@ -12,11 +12,11 @@
 </div>
 
 {% if log_resp %}
-<details class="model-logs">
-  <summary>Ver request / response crudos del modelo (último turno)</summary>
+<div class="model-logs">
+  <p class="logs-title">Logs del modelo (último turno)</p>
   <div class="log-block"><span class="log-label">REQUEST →</span><pre>{{ log_req }}</pre></div>
   <div class="log-block"><span class="log-label">← RESPONSE</span><pre>{{ log_resp }}</pre></div>
-</details>
+</div>
 {% endif %}
 
 <form class="chat-form" hx-post="/chat" hx-target="#chat" hx-swap="innerHTML"

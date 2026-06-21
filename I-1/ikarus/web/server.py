@@ -17,7 +17,7 @@ from ikarus.config import load_settings
 from ikarus.naive_agent import extract_injected_address
 from ikarus.scenarios import build_scenario, default_scenarios
 from ikarus.tools.email_sink import MockEmailSink
-from ikarus.web.live_flow import run_live_flow
+from ikarus.web.live_flow import live_extract, live_guard, live_plan
 from ikarus.web.views import scene_view
 
 _DIR = Path(__file__).parent
@@ -151,17 +151,37 @@ def create_app() -> FastAPI:
             "log_req": log_req, "log_resp": log_resp,
         })
 
-    @api.post("/flow/live", response_class=HTMLResponse)
+    def _live_scenario() -> dict:
+        s = default_scenarios().create("email")
+        return {"request": s.request, "inbox_text": s.inbox_text}
+
+    def _live_error(request: Request, exc) -> HTMLResponse:
+        return templates.TemplateResponse(request, "_flow_error.html", {"error": str(exc)})
+
+    @api.post("/flow/live", response_class=HTMLResponse)  # step 1 — P-LLM
     def flow_live(request: Request):
         settings = _effective_settings()
-        scenario = default_scenarios().create("email")
-        sc = {"request": scenario.request, "inbox_text": scenario.inbox_text}
         try:
-            steps, error = run_live_flow(settings, sc), ""
-        except (ChatError, ValueError) as exc:  # transport/config — show, don't crash
-            steps, error = [], str(exc)
+            step = live_plan(settings, _live_scenario())
+        except (ChatError, ValueError) as exc:
+            return _live_error(request, exc)
         return templates.TemplateResponse(request, "_flow_live.html", {
-            "steps": steps, "error": error, "provider": settings.llm_provider})
+            "step": step, "provider": settings.llm_provider})
+
+    @api.post("/flow/live/extract", response_class=HTMLResponse)  # step 2 — Q-LLM
+    def flow_live_extract(request: Request):
+        settings = _effective_settings()
+        try:
+            step, extracted = live_extract(settings, _live_scenario())
+        except (ChatError, ValueError) as exc:
+            return _live_error(request, exc)
+        return templates.TemplateResponse(request, "_flow_extract.html", {
+            "step": step, "extracted": extracted})
+
+    @api.post("/flow/live/guard", response_class=HTMLResponse)  # step 3 — guard (deterministic)
+    def flow_live_guard(request: Request, addr: str = Form("")):
+        step = live_guard((addr or "").strip()[:200])
+        return templates.TemplateResponse(request, "_flow_step.html", {"s": step})
 
     @api.post("/sandbox", response_class=HTMLResponse)
     def sandbox(request: Request,

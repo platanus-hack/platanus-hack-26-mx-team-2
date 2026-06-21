@@ -1,8 +1,66 @@
 # Estado de Ikarus — contexto para retomar
 
 > Documento de traspaso. Léelo antes de tocar nada. Última actualización: 2026-06-21
-> (refactor SOLID/OOP completado · interfaz web construida y **rediseñada** (design system
-> de marca, todo offline) · correo real Resend probado · `ikarus-impl` fusionada a `develop`).
+> (refactor SOLID/OOP · web interactiva con **chat + modelos reales** · documento maestro
+> vendorizado · sistema renombrado **Lazarus → Ikarus**).
+
+## Lectura rápida para un agente que reinicia
+
+1. **Qué es:** demo Python que CONTIENE prompt injection por diseño (3 capas) — abajo. El
+   sistema se **renombró de Lazarus → Ikarus**; el documento de diseño/visión completo
+   (gateway MCP, stack TS) está vendorizado en `docs/DOCUMENTO-MAESTRO.md`. **Este repo es solo
+   el PoC del núcleo**; el gateway/TS es visión, no construido.
+2. **Verifica verde con entorno limpio (sin `.env`):** `cd I-1 && python3 -m pytest -q` → **178 passed**.
+   (Si cargas `.env` con `IKARUS_SINK=resend`, los tests del CLI intentan envíos reales; corre limpio.)
+3. **Web:** `pip install -e ".[web]"` y `python3 -m ikarus.web` (http://127.0.0.1:8000). Es
+   **mock-only para el motor** (no manda correos aunque el `.env` diga resend — se fuerza mock).
+4. **Modelos reales en el chat / flujo en vivo:** `IKARUS_LLM_PROVIDER=lmstudio python3 -m ikarus.web`
+   (arranca con `google/gemma-3-12b`). O elígelo desde la UI (sección Chat). Detalle abajo.
+5. **Garantía a no romper:** el Intérprete/Guardia es **determinista** — el BLOCK no lo decide un
+   modelo. Lo que SÍ corre con modelo real es P-LLM y Q-LLM. CaMeL: `docs/HONESTY.md` +
+   `docs/CAMEL-VS-IKARUS.md` (inspirado en CaMeL, intención distinta).
+
+## Novedades de esta sesión (web interactiva + modelos reales)
+
+- **Chat con proveedor de LLM intercambiable** (`ikarus/chat_provider.py`): `ChatProvider`
+  (Protocol) + `MockChatProvider` (offline, default) / `OpenAICompatProvider` (LM Studio + OpenAI)
+  / `AnthropicProvider` (Claude) + factory `make_chat_provider(settings, max_tokens=, timeout=)`.
+  Transporte stdlib `urllib`, secretos solo por env. Selección por `IKARUS_LLM_PROVIDER`
+  (mock|lmstudio|openai|claude) o desde la UI.
+- **Selector de proveedor + API key en la UI** (`POST /provider`, `_provider.html`): override
+  **en memoria del servidor** (no se persiste ni se hace eco de la clave). El chip del chat se
+  sincroniza out-of-band al conectar.
+- **Flujo en vivo con modelos reales** (`ikarus/web/live_flow.py`): `live_plan` (P-LLM real, solo
+  ve request+catálogo) → `live_extract` (Q-LLM real, salida nace UNTRUSTED por construcción) →
+  `live_guard` (política determinista real). Endpoints **encadenados por paso** con HTMX
+  (`/flow/live` → `/flow/live/extract` → `/flow/live/guard`) con spinner por paso. Presupuesto
+  acotado (220 tokens) + timeout 45s para que no se cuelgue; limpia bloques `<think>`.
+- **Logs crudos del modelo** (request + response) **siempre visibles** en cada paso del flujo en
+  vivo y en el chat — prueba de que el LLM corre.
+- **Visualización del flujo** (`static/flow.js`): por escena, pipeline P-LLM→Q-LLM→Guardia +
+  play/step que revela el ledger fila por fila (mejora progresiva, degrada sin JS).
+- **Rediseño visual editorial/brutalist:** near-black, hero con titular grande, números de
+  sección, glows de marca. (El usuario pidió título no tan gigante → reducido.)
+- **Fix:** la web **fuerza el sink mock** (un `.env` con `IKARUS_SINK=resend` hacía 500 en `/`).
+  El proveedor de LLM (chat/flujo) es independiente del sink de correo.
+- **Default de LM Studio para el chat = `google/gemma-3-12b`** (mediano, no-razonador). El
+  default del motor (`config.DEFAULT_MODEL = qwen3.5-35b-a3b`) sigue siendo para el `--live` del CLI.
+- **Docs:** `docs/DOCUMENTO-MAESTRO.md` vendorizado (Lazarus→Ikarus + banner de alcance);
+  `README.md` con **modelo de amenaza** + sección **Visión**; `HONESTY.md`/`CAMEL-VS-IKARUS.md`
+  con el framing "inspirado en CaMeL pero distinto".
+
+### Archivos nuevos clave
+- `ikarus/chat_provider.py`, `ikarus/web/live_flow.py`.
+- Plantillas: `web/templates/_chat.html`, `_provider.html`, `_flow_live.html`, `_flow_step.html`,
+  `_flow_extract.html`, `_flow_error.html`.
+- Estáticos: `web/static/flow.js`, `web/static/fonts/*.woff2`, `web/static/vendor/htmx.min.js`,
+  `web/static/logo-wordmark.png`.
+- Tests: `tests/test_chat_provider.py`, `tests/test_live_flow.py` (+ casos en `test_web_server.py`).
+
+### Estado de ramas (importante)
+- `ikarus-impl` tiene commits **sin pushear** (timing fix, progreso por paso, logs/título) por
+  encima del último push. `develop` se sincronizó hasta el rediseño brutalist (`8f2fc0f`) — está
+  **detrás**. Antes de un handoff real, pushear `ikarus-impl` y re-sincronizar `develop`.
 
 ## Qué es
 

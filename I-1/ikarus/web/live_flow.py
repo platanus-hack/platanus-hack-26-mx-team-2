@@ -11,10 +11,31 @@ The taint guarantee still holds, by construction:
     code, not decided by the model);
   - the guard is `policy.check` — deterministic, not a model.
 """
+import re
+
 from ikarus.chat_provider import make_chat_provider
+from ikarus.config import (
+    DEFAULT_CLAUDE_MODEL,
+    DEFAULT_LMSTUDIO_MODEL,
+    DEFAULT_OPENAI_MODEL,
+)
 from ikarus.labels import untrusted
 from ikarus.policy import check as policy_check
 from ikarus.tools.registry import default_registry
+
+_DEFAULT_MODEL = {"lmstudio": DEFAULT_LMSTUDIO_MODEL,
+                  "openai": DEFAULT_OPENAI_MODEL, "claude": DEFAULT_CLAUDE_MODEL}
+
+# Bound a single live call so a local model answers in seconds (plans and a
+# single address don't need a big budget) and a hung model fails, not hangs.
+_LIVE_MAX_TOKENS = 220
+_LIVE_TIMEOUT = 45
+_THINK = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+
+
+def _clean(text: str) -> str:
+    """Drop reasoning-model <think> blocks so the surfaced value is clean."""
+    return _THINK.sub("", text or "").strip()
 
 _PLANNER_SYSTEM = (
     "Eres el P-LLM (planificador) de un agente. SOLO ves la petición del usuario y "
@@ -36,50 +57,62 @@ def _req_log(system: str, user: str) -> str:
     return f"▸ system:\n{system}\n\n▸ user:\n{user}"
 
 
-def run_live_flow(settings, scenario: dict) -> list[dict]:
-    """Run P-LLM + Q-LLM (real) and the deterministic guard; return step dicts.
+def _provider(settings):
+    return make_chat_provider(settings, max_tokens=_LIVE_MAX_TOKENS, timeout=_LIVE_TIMEOUT)
 
-    Each model step carries `req` (raw prompt sent) and `resp` (raw model output)
-    so the UI can show the actual model I/O — proof the LLM ran, not a facade.
-    `scenario` needs `request` and `inbox_text`. May raise ValueError (missing
-    provider key) or ChatError (transport) — the caller surfaces those.
-    """
-    provider = make_chat_provider(settings)
-    model = settings.chat_model or settings.llm_provider
-    steps: list[dict] = []
 
-    # Layer 1 — P-LLM (real): only the request + catalog, never the inbox.
+def _model_name(settings) -> str:
+    # Show the model that actually ran (its per-provider default when unset),
+    # not just the provider name — so the label proves which LLM produced this.
+    return settings.chat_model or _DEFAULT_MODEL.get(settings.llm_provider, settings.llm_provider)
+
+
+# The three layers as independent steps, so the web can run + reveal them one at
+# a time (real per-step progress). May raise ValueError (missing key) / ChatError.
+
+def live_plan(settings, scenario: dict) -> dict:
+    """Layer 1 — P-LLM (real): only the request + catalog, never the inbox."""
     p_user = f"Petición confiable: {scenario['request']}\n{_CATALOG}"
-    plan = provider.complete(_PLANNER_SYSTEM, [{"role": "user", "content": p_user}])
-    steps.append({
-        "stage": 1, "layer": "P-LLM", "model": model, "kind": "model",
+    plan = _clean(_provider(settings).complete(_PLANNER_SYSTEM,
+                                               [{"role": "user", "content": p_user}]))
+    return {
+        "stage": 1, "layer": "P-LLM", "model": _model_name(settings), "kind": "model",
         "title": "Planificador emite el plan",
         "detail": _short(plan),
         "note": "El modelo solo vio la petición confiable + el catálogo — NUNCA el inbox.",
         "trust": "", "decision": "",
-        "req": _req_log(_PLANNER_SYSTEM, p_user), "resp": _short(plan, 4000)})
+        "req": _req_log(_PLANNER_SYSTEM, p_user), "resp": _short(plan, 4000)}
 
-    # Layer 2 — Q-LLM (real): reads the dirty inbox; output born UNTRUSTED here.
-    raw = provider.complete(_EXTRACTOR_SYSTEM,
-                            [{"role": "user", "content": scenario["inbox_text"]}])
+
+def live_extract(settings, scenario: dict) -> tuple[dict, str]:
+    """Layer 2 — Q-LLM (real): reads the dirty inbox; output born UNTRUSTED."""
+    raw = _clean(_provider(settings).complete(_EXTRACTOR_SYSTEM,
+                 [{"role": "user", "content": scenario["inbox_text"]}]))
     extracted = _short(raw, 160)
-    tainted = untrusted(extracted, "q_llm")
-    steps.append({
-        "stage": 2, "layer": "Q-LLM", "model": model, "kind": "model",
+    step = {
+        "stage": 2, "layer": "Q-LLM", "model": _model_name(settings), "kind": "model",
         "title": "Cuarentena extrae del correo sucio",
         "detail": extracted or "(vacío)",
         "note": "Su salida nace UNTRUSTED por construcción — la etiqueta la pone el wrapper, no el modelo.",
         "trust": "UNTRUSTED", "decision": "",
-        "req": _req_log(_EXTRACTOR_SYSTEM, scenario["inbox_text"]), "resp": _short(raw, 4000)})
+        "req": _req_log(_EXTRACTOR_SYSTEM, scenario["inbox_text"]), "resp": _short(raw, 4000)}
+    return step, extracted
 
-    # Layer 3 — Guard (deterministic, NOT a model): the real policy on the arg.
-    decision = policy_check("send_email", {"to": tainted}, default_registry())
-    steps.append({
+
+def live_guard(addr: str) -> dict:
+    """Layer 3 — Guard (deterministic, NOT a model): the real policy on the arg."""
+    decision = policy_check("send_email", {"to": untrusted(addr, "q_llm")}, default_registry())
+    return {
         "stage": 3, "layer": "Guardia", "model": "determinista", "kind": "guard",
         "title": "El guardia evalúa el sink",
         "detail": decision.reason,
         "note": "No es un modelo: la decisión no depende de las palabras del dato.",
         "trust": "UNTRUSTED", "decision": "PASS" if decision.allowed else "BLOCK",
-        "req": "", "resp": ""})
+        "req": "", "resp": ""}
 
-    return steps
+
+def run_live_flow(settings, scenario: dict) -> list[dict]:
+    """All three layers in one shot (used by tests / non-streamed callers)."""
+    s1 = live_plan(settings, scenario)
+    s2, extracted = live_extract(settings, scenario)
+    return [s1, s2, live_guard(extracted)]

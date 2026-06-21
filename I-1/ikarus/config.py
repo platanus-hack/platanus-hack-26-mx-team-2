@@ -17,6 +17,9 @@ DEFAULT_SINK = "mock"  # "mock" | "resend"; mock never sends a real email.
 DEFAULT_LLM_PROVIDER = "mock"
 DEFAULT_CLAUDE_MODEL = "claude-opus-4-8"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+# LM Studio chat default: a nimble MEDIUM, non-reasoning model — big/reasoning
+# models make the live run feel stuck. Override via IKARUS_CHAT_MODEL or the UI.
+DEFAULT_LMSTUDIO_MODEL = "google/gemma-3-12b"
 
 @dataclass(frozen=True)
 class Settings:

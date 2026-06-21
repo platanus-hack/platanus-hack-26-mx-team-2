@@ -167,21 +167,18 @@ h1,h2,h3{text-wrap:balance}
 .badge.ok{color:var(--ok); background:var(--ok-bg); border-color:var(--ok-line)}
 .badge.danger{color:var(--danger); background:var(--danger-bg); border-color:var(--danger-line)}
 
-/* ---- Model logs (raw request/response — proof the LLM ran) -------------- */
-.model-logs{margin:10px 0 0; border:1px solid var(--line); border-radius:var(--radius-sm);
-  background:var(--bg)}
-.model-logs>summary{cursor:pointer; padding:9px 12px; font-family:var(--mono); font-size:12px;
-  color:var(--brand); list-style:none; user-select:none}
-.model-logs>summary::-webkit-details-marker{display:none}
-.model-logs>summary::before{content:'▸ '; color:var(--muted)}
-.model-logs[open]>summary::before{content:'▾ '}
-.model-logs>summary:hover{color:#ff8534}
-.log-block{padding:0 12px 10px}
+/* ---- Model logs (raw request/response — always visible, proof the LLM ran) */
+.model-logs{margin:10px 0 0; padding:10px 12px 4px; border:1px solid var(--line);
+  border-radius:var(--radius-sm); background:var(--bg)}
+.logs-title{margin:0 0 6px; font-family:var(--mono); font-size:11px; font-weight:700;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--brand)}
+.log-block{padding:0 0 8px}
 .log-label{display:inline-block; font-family:var(--mono); font-size:10px; font-weight:700;
-  letter-spacing:.06em; color:var(--muted); margin:8px 0 4px}
+  letter-spacing:.06em; color:var(--muted); margin:6px 0 4px}
 .log-block pre{margin:0; font-family:var(--mono); font-size:11.5px; line-height:1.5;
   white-space:pre-wrap; word-break:break-word; color:var(--ink);
-  background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:9px 11px}
+  background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:9px 11px;
+  max-height:200px; overflow:auto; overscroll-behavior:contain}
 
 /* ---- Live run (real models, step-by-step) ------------------------------ */
 .live-run{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 4px}
@@ -210,6 +207,12 @@ h1,h2,h3{text-wrap:balance}
 .live-error{margin:14px 0 0; padding:11px 14px; border-radius:var(--radius-sm);
   color:var(--danger); background:var(--danger-bg); border:1px solid var(--danger-line);
   font-family:var(--mono); font-size:12.5px}
+.live-pending{display:flex; align-items:center; gap:10px; padding:12px 14px;
+  color:var(--brand); font-family:var(--mono); font-size:12.5px;
+  border:1px dashed var(--brand-dim); border-radius:var(--radius-sm); background:var(--brand-bg)}
+.live-spinner{width:14px; height:14px; flex:none; border:2px solid var(--line);
+  border-top-color:var(--brand); border-radius:50%; animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* ---- Agent-flow strip (per scene, built by flow.js) -------------------- */
 .flow-strip{display:flex; align-items:stretch; gap:8px; margin:14px 0 0}
@@ -433,8 +436,8 @@ button:active{transform:translateY(1px)}
 .logo{height:40px}
 .hero-kicker{margin:26px 0 0; font-family:var(--mono); font-size:12px; letter-spacing:.2em;
   text-transform:uppercase; color:var(--muted)}
-.hero-headline{margin:14px 0 0; font:700 clamp(46px,9.5vw,108px)/.92 var(--sans);
-  letter-spacing:-.045em; color:var(--ink)}
+.hero-headline{margin:14px 0 0; font:700 clamp(32px,5.2vw,58px)/1 var(--sans);
+  letter-spacing:-.035em; color:var(--ink)}
 .hero-headline .accent{color:var(--brand)}
 .site-header .tagline{margin:26px 0 0; font-size:18px; line-height:1.55; color:var(--muted);
   max-width:60ch}
@@ -445,12 +448,12 @@ button:active{transform:translateY(1px)}
 .panel:last-of-type{border-bottom:0}
 
 /* Giant OUTLINED section numbers looming next to big headings. */
-.panel>h2{font:700 clamp(28px,4.6vw,42px)/1 var(--sans); letter-spacing:-.03em;
-  align-items:flex-start; gap:20px}
+.panel>h2{font:700 clamp(24px,3.4vw,34px)/1 var(--sans); letter-spacing:-.02em;
+  align-items:flex-start; gap:16px}
 .panel>h2::before{content:counter(panel,decimal-leading-zero);
-  font:700 clamp(46px,8vw,84px)/.82 var(--mono);
+  font:700 clamp(34px,5vw,52px)/.82 var(--mono);
   color:transparent; -webkit-text-stroke:1.5px var(--brand-dim);
-  background:none; border:0; padding:0; box-shadow:none; transform:translateY(-.06em)}
+  background:none; border:0; padding:0; box-shadow:none; transform:translateY(-.04em)}
 
 /* The intro line under each section heading, bigger. */
 .panel>.hint{font-size:15.5px; max-width:68ch; margin-top:14px}

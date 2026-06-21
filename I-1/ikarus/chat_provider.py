@@ -20,6 +20,7 @@ from typing import Any, Callable, Optional, Protocol, runtime_checkable
 
 from ikarus.config import (
     DEFAULT_CLAUDE_MODEL,
+    DEFAULT_LMSTUDIO_MODEL,
     DEFAULT_OPENAI_MODEL,
     Settings,
 )
@@ -88,12 +89,13 @@ class OpenAICompatProvider:
     """OpenAI-compatible `/chat/completions` transport (LM Studio + OpenAI)."""
 
     def __init__(self, base_url: str, api_key: str, model: str,
-                 max_tokens: int = DEFAULT_CHAT_MAX_TOKENS,
+                 max_tokens: int = DEFAULT_CHAT_MAX_TOKENS, timeout: int = 60,
                  _post: Optional[Callable[..., Any]] = None) -> None:
         self._url = base_url.rstrip("/") + "/chat/completions"
         self._api_key = api_key
         self._model = model
         self._max_tokens = max_tokens
+        self._timeout = timeout
         self._post = _post or _http_post_json
 
     def complete(self, system: str, messages: list[dict]) -> str:
@@ -103,6 +105,7 @@ class OpenAICompatProvider:
             {"Authorization": f"Bearer {self._api_key}"},
             {"model": self._model, "messages": msgs,
              "max_tokens": self._max_tokens, "temperature": 0},
+            timeout=self._timeout,
         )
         try:
             return body["choices"][0]["message"]["content"] or ""
@@ -114,11 +117,12 @@ class AnthropicProvider:
     """Anthropic Messages API transport (Claude)."""
 
     def __init__(self, api_key: str, model: str,
-                 max_tokens: int = DEFAULT_CHAT_MAX_TOKENS,
+                 max_tokens: int = DEFAULT_CHAT_MAX_TOKENS, timeout: int = 60,
                  _post: Optional[Callable[..., Any]] = None) -> None:
         self._api_key = api_key
         self._model = model
         self._max_tokens = max_tokens
+        self._timeout = timeout
         self._post = _post or _http_post_json
 
     def complete(self, system: str, messages: list[dict]) -> str:
@@ -127,6 +131,7 @@ class AnthropicProvider:
             {"x-api-key": self._api_key, "anthropic-version": ANTHROPIC_VERSION},
             {"model": self._model, "max_tokens": self._max_tokens,
              "system": system or "", "messages": list(messages)},
+            timeout=self._timeout,
         )
         try:
             blocks = body["content"]
@@ -139,28 +144,35 @@ def _chat_model(settings: Settings, fallback: str) -> str:
     return settings.chat_model or fallback
 
 
-def make_chat_provider(settings: Settings) -> ChatProvider:
+def make_chat_provider(settings: Settings, *,
+                       max_tokens: int = DEFAULT_CHAT_MAX_TOKENS,
+                       timeout: int = 60) -> ChatProvider:
     """Build the chat provider from settings (mock by default).
 
-    Real providers fail fast (not at first message) when their key is missing,
-    so a misconfiguration is caught at startup with a clear message.
+    `max_tokens`/`timeout` let callers bound a single call — the live flow uses a
+    small budget so a local model answers in seconds instead of appearing stuck.
+    Real providers fail fast (not at first message) when their key is missing.
     """
     provider = settings.llm_provider
     if provider == "mock":
         return MockChatProvider()
     if provider == "lmstudio":
         # LM Studio ignores the key and serves an OpenAI-compatible endpoint.
+        # Default to a medium, non-reasoning model (not the engine's planner default).
         return OpenAICompatProvider(settings.base_url, settings.api_key,
-                                    _chat_model(settings, settings.model))
+                                    _chat_model(settings, DEFAULT_LMSTUDIO_MODEL),
+                                    max_tokens=max_tokens, timeout=timeout)
     if provider == "openai":
         if not settings.openai_api_key:
             raise ValueError("IKARUS_LLM_PROVIDER=openai requires IKARUS_OPENAI_API_KEY")
         return OpenAICompatProvider(OPENAI_ENDPOINT, settings.openai_api_key,
-                                    _chat_model(settings, DEFAULT_OPENAI_MODEL))
+                                    _chat_model(settings, DEFAULT_OPENAI_MODEL),
+                                    max_tokens=max_tokens, timeout=timeout)
     if provider == "claude":
         if not settings.anthropic_api_key:
             raise ValueError("IKARUS_LLM_PROVIDER=claude requires ANTHROPIC_API_KEY")
         return AnthropicProvider(settings.anthropic_api_key,
-                                 _chat_model(settings, DEFAULT_CLAUDE_MODEL))
+                                 _chat_model(settings, DEFAULT_CLAUDE_MODEL),
+                                 max_tokens=max_tokens, timeout=timeout)
     raise ValueError(
         f"unknown IKARUS_LLM_PROVIDER={provider!r} (mock|lmstudio|openai|claude)")
