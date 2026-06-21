@@ -1,0 +1,11 @@
+[project]
+name = "ikarus"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["openai>=1.0", "pydantic>=2", "rich>=13"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
