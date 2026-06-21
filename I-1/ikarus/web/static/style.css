@@ -425,3 +425,38 @@ button:active{transform:translateY(1px)}
 @keyframes dash{to{stroke-dashoffset:-10}}
 
 @media (max-width:720px){ .panel>h2{font-size:21px} .tagline{font-size:17px} }
+
+/* ===========================================================================
+   EDITORIAL / BRUTALIST LAYER — huge type, giant numbers, bold rules, air
+   =========================================================================== */
+.site-header{padding:56px 0 40px}
+.logo{height:40px}
+.hero-kicker{margin:26px 0 0; font-family:var(--mono); font-size:12px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--muted)}
+.hero-headline{margin:14px 0 0; font:700 clamp(46px,9.5vw,108px)/.92 var(--sans);
+  letter-spacing:-.045em; color:var(--ink)}
+.hero-headline .accent{color:var(--brand)}
+.site-header .tagline{margin:26px 0 0; font-size:18px; line-height:1.55; color:var(--muted);
+  max-width:60ch}
+.pill-row{margin-top:28px}
+
+/* Bold horizontal rules + generous rhythm between sections. */
+.panel{border-top:1.5px solid var(--ink); border-bottom:0; padding:52px 0}
+.panel:last-of-type{border-bottom:0}
+
+/* Giant OUTLINED section numbers looming next to big headings. */
+.panel>h2{font:700 clamp(28px,4.6vw,42px)/1 var(--sans); letter-spacing:-.03em;
+  align-items:flex-start; gap:20px}
+.panel>h2::before{content:counter(panel,decimal-leading-zero);
+  font:700 clamp(46px,8vw,84px)/.82 var(--mono);
+  color:transparent; -webkit-text-stroke:1.5px var(--brand-dim);
+  background:none; border:0; padding:0; box-shadow:none; transform:translateY(-.06em)}
+
+/* The intro line under each section heading, bigger. */
+.panel>.hint{font-size:15.5px; max-width:68ch; margin-top:14px}
+
+@media (max-width:720px){
+  .panel>h2{font-size:24px; gap:12px}
+  .panel>h2::before{-webkit-text-stroke-width:1px}
+  .hero-headline{font-size:46px}
+}
