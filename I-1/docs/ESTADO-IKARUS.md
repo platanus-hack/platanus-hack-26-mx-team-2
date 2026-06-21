@@ -1,6 +1,7 @@
 # Estado de Ikarus — contexto para retomar
 
-> Documento de traspaso. Léelo antes de tocar nada. Última actualización: 2026-06-21.
+> Documento de traspaso. Léelo antes de tocar nada. Última actualización: 2026-06-21
+> (refactor SOLID/OOP completado).
 
 ## Qué es
 
@@ -82,19 +83,31 @@ Una auditoría de seguridad reciente endureció el demo. Cambios clave:
   amigables en envs int; `q_llm` loguea fallos; el catálogo del planificador se deriva del
   registry.
 
-## Refactor SOLID/OOP (EN CURSO)
+## Refactor SOLID/OOP (COMPLETADO)
 
-Refactor hacia OOP/SOLID en progreso. **Hecho hasta ahora:**
+Refactor hacia OOP/SOLID **terminado**. Cada capa se hizo con TDD (RED→GREEN), commits
+atómicos, suite verde y demo intacto en cada paso. **Hecho:**
 
 - `EmailSink` (Protocol) + `MockEmailSink`/`ResendEmailSink` (transporte delgado) +
   `AllowlistEmailSink` (decorator) + factory validante `make_email_sink`.
 - `Source` (Protocol) + `InboxSource`/`PdfSource` + `default_sources()`; el intérprete despacha
   la fuente por `step.tool` (la ruta antes muerta `read_pdf` ahora funciona).
-- `SecurityPolicy` como estrategia.
+- `SecurityPolicy` como estrategia (`DenyUntrustedArgsPolicy`).
+- **`Interpreter` como clase** con colaboradores inyectados (policy/sinks/sources/extractor).
+  Las funciones de módulo `run`/`validate_plan` quedan como wrappers compatibles.
+- **`PrivilegedPlanner`** (dueño del catálogo derivado del registry) y **`QuarantineExtractor`**
+  (callable que encaja en el slot extractor del intérprete; nace UNTRUSTED por construcción).
+- **`CompositionRoot`** (todo el cableado del grafo de objetos) + **`IkarusApp`** (servicio que
+  orquesta las 3 escenas) + **`cli` delgado** (solo argparse + delegación; `make_email_sink` se
+  sigue resolviendo en el namespace de `cli` para el monkeypatch/`IKARUS_SINK`).
+- **`TraceRenderer`** (presentación como colaborador inyectable; `render_trace`/`verdict_line`
+  quedan como wrappers).
+- **`ScenarioRegistry`** + `default_scenarios()` sobre las fábricas de escenarios; `SCENARIOS`
+  queda por compatibilidad.
+- **Split de config:** `is_reasoning_model` + `REASONING_MODEL_MARKERS` movidos a
+  `ikarus/models.py` (SRP: conocimiento de familia de modelo ≠ carga de env).
 
-**Pendiente:** `Interpreter` como clase con colaboradores inyectados; clases
-`PrivilegedPlanner`/`QuarantineExtractor`; un `CompositionRoot` + `cli` delgado; split de config;
-`TraceRenderer`; `ScenarioRegistry`.
+**Pendiente del refactor:** nada. (Stretch fuera de alcance: Q-LLM real, B2, vista web — ver abajo.)
 
 ## Modo híbrido `--live` (importante)
 
@@ -134,18 +147,20 @@ Refactor hacia OOP/SOLID en progreso. **Hecho hasta ahora:**
 
 ## Estado del código
 
-- **Rama:** `ikarus-impl` (NO fusionada a `master`). ~36 commits.
-- **Tests:** `102 passed` (pytest). Cobertura de las tres garantías + las tres escenas + los
-  endurecimientos de la auditoría.
+- **Rama:** `ikarus-impl` (NO fusionada a `master`). ~42 commits.
+- **Tests:** `128 passed` (pytest). Cobertura de las tres garantías + las tres escenas + los
+  endurecimientos de la auditoría + las clases del refactor SOLID/OOP.
 - **Instalable:** `pip install -e .` funciona (verificado).
 - Hay un warning de `pytest-asyncio` que es **del entorno** (plugin global, no es dependencia del
   proyecto, no hay código async). No es culpa del código.
 
 ### Mapa de archivos (`ikarus/`)
-- `config.py` — settings de LM Studio (env: `IKARUS_BASE_URL`, `IKARUS_MODEL`, `IKARUS_API_KEY`).
-  **Creció:** presupuestos de tokens (`IKARUS_MAX_TOKENS`, `IKARUS_REASONING_MAX_TOKENS`),
-  `is_reasoning_model`, y settings del sink (`IKARUS_SINK`, `RESEND_API_KEY`, `IKARUS_EMAIL_FROM`,
+- `config.py` — `Settings` + `load_settings` (env: `IKARUS_BASE_URL`, `IKARUS_MODEL`,
+  `IKARUS_API_KEY`, presupuestos de tokens `IKARUS_MAX_TOKENS`/`IKARUS_REASONING_MAX_TOKENS`, y
+  settings del sink `IKARUS_SINK`, `RESEND_API_KEY`, `IKARUS_EMAIL_FROM`,
   `IKARUS_ALLOWED_RECIPIENTS`, `IKARUS_TRUSTED_RECIPIENT`, `IKARUS_ATTACKER_ADDR`).
+- `models.py` — **OOP/SRP:** heurística de familia de modelo (`is_reasoning_model` +
+  `REASONING_MODEL_MARKERS`), separada de la carga de env.
 - `labels.py` — `Trust`, `Provenance`, `Tainted` (inmutable) + ley de taint (UNTRUSTED domina).
 - `schemas.py` — modelos pydantic: `Plan`, `PlanStep`, `ArgRef`, `Extraction`.
 - `tools/` — `registry.py` (SOURCE/SINK + sensitive_args), `sinks.py` (mock).
@@ -159,21 +174,31 @@ Refactor hacia OOP/SOLID en progreso. **Hecho hasta ahora:**
 - `llm_client.py` — wrapper OpenAI-compatible para LM Studio (import perezoso, testeable por DI).
   **Creció:** presupuesto de tokens para razonamiento + rescate de `reasoning_content` + parseo
   JSON tolerante.
-- `q_llm.py` — cuarentena: extract() siempre UNTRUSTED.
-- `p_llm.py` — planificador: solo request+catálogo, fallback a plan canónico. **Creció:** prompt
-  reforzado + `request_fields`.
-- `interpreter.py` — guardia determinista: corre el plan, propaga taint, bloquea sinks.
-  **Creció:** `validate_plan` (incluye la regla que rechaza destinatario desde `literal` pero
-  permite `from="step"`) + despacho de fuente/sink (source dispatch por `step.tool`, sink
-  inyectable) + manejo de `SinkError`.
-- `naive_agent.py` — agente ingenuo que se deja secuestrar (el contraste). **Creció:** sink inyectable.
-- `scenarios.py` — escenarios `email` y `pdf` con fixtures de inyección. **Creció:** direcciones
-  sobre-escribibles por env.
-- `tui.py` — render `rich` (Taint Ledger + veredicto). **Ojo:** usa `Console(file=io.StringIO())`
-  para grabar sin imprimir; el CLI imprime el texto devuelto (si rompes esto, cada escena se
-  imprime doble — ya pasó y se arregló).
-- `cli.py` / `__main__.py` — runner de las 3 escenas + wiring híbrido `--live`. **Creció:** cablea
-  el sink.
+- `q_llm.py` — cuarentena: `extract()` siempre UNTRUSTED + **`QuarantineExtractor`** (callable
+  inyectable en el intérprete).
+- `p_llm.py` — planificador: solo request+catálogo, fallback a plan canónico (prompt reforzado +
+  `request_fields`) + **`PrivilegedPlanner`** (dueño del catálogo derivado del registry).
+- `interpreter.py` — **`Interpreter` (clase)**: guardia determinista con colaboradores inyectados
+  (policy/sinks/sources/extractor); corre el plan, propaga taint, consulta la política antes de
+  cada sink. `validate_plan` (rechaza destinatario `literal`, permite `from="step"`) y `run`
+  quedan como wrappers de módulo compatibles. Despacho de fuente por `step.tool` + manejo de
+  `SinkError`.
+- `app.py` — **`IkarusApp`**: servicio de aplicación que orquesta las 3 escenas (sin cableado ni
+  parseo de args). Usa el intérprete inyectado + `PrivilegedPlanner` para la selección de plan en
+  vivo, y el `TraceRenderer` inyectado para presentar.
+- `composition.py` — **`CompositionRoot`**: único lugar que arma el grafo de objetos desde
+  `Settings` (registry, sinks, intérprete, escenarios, renderer); el `email_sink` se inyecta.
+- `naive_agent.py` — agente ingenuo que se deja secuestrar (el contraste). Sink inyectable.
+- `scenarios.py` — escenarios `email` y `pdf` con fixtures de inyección (direcciones
+  sobre-escribibles por env) + **`ScenarioRegistry`** (`names`/`create`/`__contains__`) +
+  `default_scenarios()`. `SCENARIOS` queda por compatibilidad.
+- `tui.py` — **`TraceRenderer`** (render `rich`: Taint Ledger + veredicto); `render_trace`/
+  `verdict_line` quedan como wrappers. **Ojo:** usa `Console(file=io.StringIO())` para grabar sin
+  imprimir; el CLI imprime el texto devuelto (si rompes esto, cada escena se imprime doble — ya
+  pasó y se arregló).
+- `cli.py` / `__main__.py` — **CLI delgado:** solo argparse + delega en `CompositionRoot`/
+  `IkarusApp`. `make_email_sink` se resuelve aquí (namespace `cli`) para `IKARUS_SINK` y el
+  monkeypatch de los tests.
 
 ### Documentación
 - `README.md` — quickstart (inglés).
@@ -192,10 +217,8 @@ Clonado en `../camel-reference/` (hermano de este proyecto), Apache-2.0. Núcleo
 
 ## Pendientes / próximos pasos posibles
 
-1. **Refactor SOLID/OOP (EN CURSO):** terminar lo pendiente — `Interpreter` como clase con
-   colaboradores inyectados; clases `PrivilegedPlanner`/`QuarantineExtractor`; un
-   `CompositionRoot` + `cli` delgado; split de config; `TraceRenderer`; `ScenarioRegistry`.
-   (Ya hecho: sinks/sources/política como Protocols + decorator + factory — ver sección arriba.)
+1. **Refactor SOLID/OOP — COMPLETADO.** Ver la sección "Refactor SOLID/OOP (COMPLETADO)" arriba.
+   Nada pendiente del refactor.
 2. **Q-LLM real:** la extracción sigue siendo un mock determinista en todos los modos (nace
    UNTRUSTED por diseño). Cablearla a un modelo es trabajo pendiente.
 3. **Stretch B2** (taint por flujo de control real) — **EN COLA**, solo si el dueño lo aprueba.
