@@ -10,5 +10,5 @@
   // If your project is an app, put the download link here instead
   // (for example, a URL to download an APK).
   // Placeholder válido mientras tanto: el repositorio del proyecto.
-  "deploy-url": "ikarus.159.223.163.154.sslip.io"
+  "deploy-url": "https://ikarus.159.223.163.154.sslip.io"
 }
