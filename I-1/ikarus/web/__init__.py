@@ -1,0 +1,1 @@
+"""Ikarus web UI package."""
