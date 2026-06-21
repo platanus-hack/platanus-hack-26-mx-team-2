@@ -24,6 +24,43 @@ class ExecutionResult:
     blocked: bool
     executed_sinks: list[str]
 
+def validate_plan(plan: Plan, registry: ToolRegistry,
+                  request_values: dict[str, Tainted]) -> list[str]:
+    """Statically check a plan against the interpreter's execution invariants.
+
+    Real LLMs can emit structurally-valid (schema-passing) plans that are not
+    executable — referencing a step that doesn't exist, a missing request value,
+    or an unregistered sink. Returns a list of human-readable errors (empty when
+    the plan is safe to run), so callers can fall back before executing — and
+    before any sink fires.
+    """
+    errors: list[str] = []
+    seen: set[str] = set()
+    for step in plan.steps:
+        if not step.id:
+            errors.append("step has empty id")
+        elif step.id in seen:
+            errors.append(f"duplicate step id '{step.id}'")
+        if step.kind in ("source", "sink") and not step.tool:
+            errors.append(f"step '{step.id}' ({step.kind}) is missing a tool")
+        if step.kind == "extract" and step.input_ref not in seen:
+            errors.append(f"extract step '{step.id}' input_ref '{step.input_ref}' "
+                          "is not an earlier step")
+        if step.kind == "sink" and step.tool and step.tool not in _SINK_FUNCS:
+            errors.append(f"step '{step.id}' uses unknown sink tool '{step.tool}'")
+        for name, arg in step.args.items():
+            if arg.from_ == "step" and arg.ref not in seen:
+                errors.append(f"step '{step.id}' arg '{name}' references "
+                              f"unknown/forward step '{arg.ref}'")
+            elif arg.from_ == "request" and arg.ref is not None \
+                    and arg.ref not in request_values:
+                errors.append(f"step '{step.id}' arg '{name}' references "
+                              f"unknown request value '{arg.ref}'")
+            elif arg.from_ == "literal" and arg.value is None:
+                errors.append(f"step '{step.id}' arg '{name}' is a literal with no value")
+        seen.add(step.id)
+    return errors
+
 def _resolve(arg: ArgRef, env: dict[str, Tainted], request_values: dict[str, Tainted]) -> Tainted:
     if arg.from_ == "literal":
         return trusted(arg.value, source="user_request")

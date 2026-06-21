@@ -1,7 +1,7 @@
 import argparse
 from ikarus.scenarios import SCENARIOS
 from ikarus.tools.registry import default_registry
-from ikarus.interpreter import run as run_plan
+from ikarus.interpreter import run as run_plan, validate_plan
 from ikarus.naive_agent import run as run_naive
 from ikarus.tui import render_trace
 from ikarus.p_llm import plan as plan_request, build_catalog
@@ -19,6 +19,11 @@ def _select_plan(scene, scenario, registry, mock, client):
         client = LLMClient(load_settings())
     res = plan_request(scenario.request, build_catalog(registry),
                        canonical=scenario.canonical_plan, client=client)
+    # A real model can emit a schema-valid but unexecutable plan; fall back to
+    # the canonical plan rather than crash the interpreter (or fire a sink with
+    # a half-resolved plan).
+    if not res.used_fallback and validate_plan(res.plan, registry, scenario.request_values):
+        return scenario.canonical_plan, True
     return res.plan, res.used_fallback
 
 def run_scene(scene: int, scenario_name: str, mock: bool = True, client=None) -> dict:

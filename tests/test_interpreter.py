@@ -1,5 +1,5 @@
 import pytest
-from ikarus.interpreter import run, ExecutionResult
+from ikarus.interpreter import run, validate_plan, ExecutionResult
 from ikarus.schemas import Plan, PlanStep, ArgRef
 from ikarus.tools.registry import default_registry, ToolRegistry, ToolSpec, ToolKind
 from ikarus.labels import trusted
@@ -50,3 +50,40 @@ def test_missing_sink_func_raises_clear_value_error():
     plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="rogue_sink", args={})])
     with pytest.raises(ValueError, match="rogue_sink"):
         run(plan, _req(), inbox_text="", registry=reg)
+
+# --- validate_plan: catch malformed LLM plans before execution ---
+
+def test_validate_plan_accepts_valid_plan():
+    plan = Plan(steps=[
+        PlanStep(id="s1", kind="source", tool="read_inbox", args={}),
+        PlanStep(id="s2", kind="extract", query="recipient", input_ref="s1", args={}),
+        PlanStep(id="s3", kind="sink", tool="send_email", args={
+            "to": ArgRef(**{"from": "step", "ref": "s2"}),
+            "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    assert validate_plan(plan, default_registry(), _req()) == []
+
+def test_validate_plan_flags_unknown_step_ref():
+    # A real LLM emitted from="step" ref="read_inbox" with no such step => crash.
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "step", "ref": "read_inbox"}),
+        "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    errors = validate_plan(plan, default_registry(), _req())
+    assert any("read_inbox" in e for e in errors)
+
+def test_validate_plan_flags_unknown_request_ref():
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "request", "ref": "missing"})})])
+    errors = validate_plan(plan, default_registry(), _req())
+    assert any("missing" in e for e in errors)
+
+def test_validate_plan_flags_forward_step_ref():
+    # s1 references s2 which is defined later — the linear interpreter can't resolve it.
+    plan = Plan(steps=[
+        PlanStep(id="s1", kind="sink", tool="send_email", args={
+            "to": ArgRef(**{"from": "step", "ref": "s2"})}),
+        PlanStep(id="s2", kind="source", tool="read_inbox", args={})])
+    assert validate_plan(plan, default_registry(), _req()) != []
+
+def test_validate_plan_flags_unregistered_sink_tool():
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="rm_rf_slash", args={})])
+    assert validate_plan(plan, default_registry(), _req()) != []

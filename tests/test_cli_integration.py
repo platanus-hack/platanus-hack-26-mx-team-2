@@ -19,6 +19,19 @@ def test_scene1_live_uses_p_llm(monkeypatch):
     assert out["used_fallback"] is False
     assert "send_email" in out["executed_sinks"]
 
+def test_scene1_live_falls_back_on_invalid_plan():
+    # A real model can emit a structurally-valid but unexecutable plan
+    # (e.g. referencing a non-existent step). It must fall back, not crash.
+    bad = {"steps": [{"id": "s1", "kind": "sink", "tool": "send_email",
+            "args": {"to": {"from": "step", "ref": "read_inbox"},
+                     "body": {"from": "request", "ref": "body"}}}]}
+    class FakeClient:
+        def structured(self, *a, **k): return bad
+    out = run_scene(1, "email", mock=False, client=FakeClient())
+    assert out["used_fallback"] is True
+    assert out["blocked"] is False
+    assert "send_email" in out["executed_sinks"]
+
 def test_scene2_taint_blocks_sink():
     out = run_scene(2, "email", mock=True)
     assert out["blocked"] is True
