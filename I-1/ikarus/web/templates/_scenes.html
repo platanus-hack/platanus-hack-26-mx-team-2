@@ -1,0 +1,31 @@
+{% for s in scenes %}
+<article class="scene {{ 'blocked' if s.blocked else 'allowed' }}{{ ' naive' if s.is_naive else '' }}">
+  <h3>{{ s.title }}</h3>
+  {% if s.is_naive %}
+    <p class="naive-line {{ 'hijacked' if s.hijacked else 'safe' }}">
+      Naive agent sent to <code>{{ s.naive_recipient }}</code>
+      — <strong>hijacked={{ s.hijacked }}</strong>
+    </p>
+  {% else %}
+    <table class="ledger">
+      <caption>Taint Ledger</caption>
+      <thead>
+        <tr><th>Step</th><th>Kind</th><th>Detail</th><th>Trust</th><th>Policy</th></tr>
+      </thead>
+      <tbody>
+      {% for r in s.rows %}
+        <tr>
+          <td>{{ r.step }}</td>
+          <td>{{ r.kind }}</td>
+          <td>{{ r.detail }}</td>
+          <td class="{{ r.trust_class }}">{{ r.trust }}</td>
+          <td class="{{ r.policy_class }}">{{ r.policy }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="verdict {{ 'block' if s.blocked else 'pass' }}">VERDICT: {{ s.verdict }}</p>
+    {% if s.used_fallback %}<p class="note">[note] used canonical fallback plan</p>{% endif %}
+  {% endif %}
+</article>
+{% endfor %}
