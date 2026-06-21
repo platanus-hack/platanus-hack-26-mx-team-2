@@ -98,11 +98,30 @@
         y exactamente lo que Ikarus bloquea.</p>
     </section>
 
+    <section class="panel" id="chat-panel">
+      <h2>Chat — prueba tu prompt engineering</h2>
+      <p class="hint">Conversa con el agente ingenuo. Con un modelo real conectado
+        (LM Studio / OpenAI / Claude) puedes intentar secuestrarlo con una inyección;
+        en modo <code>mock</code> responde de forma determinista sin red.</p>
+      <div id="chat" class="chat" role="log" aria-live="polite">
+        {% with messages=chat_messages, history_json=chat_history_json, provider=chat_provider %}
+          {% include "_chat.html" %}
+        {% endwith %}
+      </div>
+    </section>
+
     <footer class="site-footer">
       <p>Modo <code>mock</code> — determinista, no requiere modelo. Contención de
         inyección de prompts <strong>por diseño</strong>, no por detección.</p>
     </footer>
 
   </div>
+  <script>
+    // Keep the chat scrolled to the latest message after each HTMX swap.
+    document.body.addEventListener('htmx:afterSwap', function () {
+      var log = document.getElementById('chat-log');
+      if (log) log.scrollTop = log.scrollHeight;
+    });
+  </script>
 </body>
 </html>
