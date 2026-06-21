@@ -36,6 +36,28 @@ def _effective_settings():
     return dataclasses.replace(s, **_RUNTIME) if _RUNTIME else s
 
 
+def autodetect_provider() -> str:
+    """If the user didn't pick a provider and LM Studio is reachable, default the
+    chat/live flow to it — so real model output 'just works'. Returns the resolved
+    provider (for the startup log). Only called from `python -m ikarus.web`, never
+    from tests (which import create_app directly), so test mode stays mock.
+    """
+    import os
+    import urllib.request
+    if os.environ.get("IKARUS_LLM_PROVIDER") or _RUNTIME.get("llm_provider"):
+        return _effective_settings().llm_provider  # explicit choice wins
+    base = load_settings().base_url.rstrip("/")
+    try:
+        req = urllib.request.Request(base + "/models", headers={"User-Agent": "ikarus/0.1"})
+        with urllib.request.urlopen(req, timeout=1.5) as resp:  # noqa: S310
+            if 200 <= resp.status < 300:
+                _RUNTIME["llm_provider"] = "lmstudio"
+                return "lmstudio"
+    except Exception:
+        pass  # LM Studio not up → stay mock (offline)
+    return "mock"
+
+
 def _provider_ctx(status: str = "", status_class: str = "", oob: bool = False) -> dict:
     """Template context for the provider picker. The key value is NEVER sent —
     only whether one is configured for the selected provider. `oob` adds an
