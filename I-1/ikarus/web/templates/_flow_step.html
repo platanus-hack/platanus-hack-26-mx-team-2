@@ -4,7 +4,7 @@
     <strong class="live-layer">{{ s.layer }}</strong>
     <span class="live-model">{{ s.model }}</span>
     {% if s.trust %}<span class="tt untrusted">{{ s.trust }}</span>{% endif %}
-    {% if s.decision %}<span class="badge {{ 'danger' if s.decision == 'BLOCK' else 'ok' }}">{{ s.decision }}</span>{% endif %}
+    {% if s.decision %}<span class="badge {{ 'danger' if s.decision in ['BLOCK','EXFIL'] else 'ok' }}">{{ s.decision }}</span>{% endif %}
   </div>
   <p class="live-title">{{ s.title }}</p>
   <pre class="live-detail">{{ s.detail }}</pre>

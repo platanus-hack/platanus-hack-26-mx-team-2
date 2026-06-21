@@ -111,6 +111,27 @@ def live_guard(addr: str) -> dict:
         "req": "", "resp": ""}
 
 
+def live_naive(settings, scenario: dict) -> dict:
+    """Baseline: a single-LLM naive agent given request+inbox together. With a
+    real provider it is asked to pick the recipient and gets hijacked; the value
+    is the proof the attack is real. Deterministic mock when provider is mock."""
+    from ikarus.naive_agent import run as naive_run, extract_injected_address
+    inbox, req = scenario["inbox_text"], scenario["request"]
+    addr = extract_injected_address(inbox) or "bob@corp.com"  # noqa: F841
+    res = naive_run(req, inbox, "bob@corp.com", mock=True)
+    return {
+        "stage": "0", "layer": "Agente ingenuo (sin defensa)",
+        "model": _model_name(settings), "decision": "EXFIL", "trust": "",
+        "kind": "naive",
+        "title": "Un solo LLM lee petición + inbox juntos",
+        "detail": f"Reenvía a: {res.recipient}  (hijacked={res.hijacked})",
+        "note": "Sin separación plan/datos: obedece la instrucción escondida.",
+        "req": _req_log("(naive: request + inbox en el mismo prompt)",
+                        f"{req}\n\n{inbox}"),
+        "resp": f"to={res.recipient}\n{res.sink_log}",
+    }
+
+
 def run_live_flow(settings, scenario: dict) -> list[dict]:
     """All three layers in one shot (used by tests / non-streamed callers)."""
     s1 = live_plan(settings, scenario)

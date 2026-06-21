@@ -194,6 +194,8 @@ h1,h2,h3{text-wrap:balance}
   border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow);
   animation:rise .4s both}
 .live-step.guard{border-left-color:var(--muted)}
+.live-step.naive{border-color:#7f1d1d; background:rgba(127,29,29,.10)}
+.live-step.naive .live-model{color:#fca5a5; border-color:#7f1d1d; background:rgba(127,29,29,.20)}
 .live-step-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
 .live-layer{font-size:14px}
 .live-model{font-family:var(--mono); font-size:11px; color:var(--brand);

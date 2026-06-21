@@ -17,7 +17,7 @@ from ikarus.config import load_settings
 from ikarus.naive_agent import extract_injected_address
 from ikarus.scenarios import build_scenario, default_scenarios
 from ikarus.tools.email_sink import MockEmailSink
-from ikarus.web.live_flow import live_extract, live_guard, live_plan
+from ikarus.web.live_flow import live_extract, live_guard, live_naive, live_plan
 from ikarus.web.views import scene_view
 
 _DIR = Path(__file__).parent
@@ -185,11 +185,13 @@ def create_app() -> FastAPI:
     def flow_live(request: Request, scenario: str = Form("email")):
         settings = _effective_settings()
         try:
+            naive = live_naive(settings, _live_scenario(scenario))
             step = live_plan(settings, _live_scenario(scenario))
         except (ChatError, ValueError) as exc:
             return _live_error(request, exc)
         return templates.TemplateResponse(request, "_flow_live.html", {
-            "step": step, "provider": settings.llm_provider, "scenario": scenario})
+            "naive": naive, "step": step,
+            "provider": settings.llm_provider, "scenario": scenario})
 
     @api.post("/flow/live/extract", response_class=HTMLResponse)  # step 2 — Q-LLM
     def flow_live_extract(request: Request, scenario: str = Form("email")):
