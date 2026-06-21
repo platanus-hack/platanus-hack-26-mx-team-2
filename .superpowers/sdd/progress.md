@@ -38,3 +38,9 @@ Task 13: complete (commits 2121c6d..08ef761, review clean) — FULL DEMO WORKS, 
   - Minor: _select_plan implicit mock-default coupling; vestigial --mock flag
 Task 14: complete (commits e83e107..c8d25e0, review clean) — docs accurate, citations verified, no overclaim
 ALL 14 TASKS COMPLETE.
+
+FINAL: whole-branch review PASSED (ready to merge, no Critical/Important).
+  - Bug found by running the real demo (not caught by unit tests): TUI double-rendered each scene to stdout.
+    FIXED commit fb75c69 + regression test. Verified: each scene renders once; 50 tests pass.
+  - DEFAULT_MODEL "qwen3.5-35b-a3b" matches user's stated model (reviewer "typo" flag is a false positive).
+  - Triage: no accumulated Minors are must-fix; pip install -e . confirmed working.
