@@ -6,15 +6,29 @@
 
 Track: 🛡️ AI Security
 
-## 👉 The project lives under [`I-1/`](I-1/)
+## 👉 The project lives under [`ikarus/`](ikarus/)
 
-**Ikarus** — containing indirect prompt injection *by design*. Start here:
-- [`I-1/README.md`](I-1/README.md) — problem, solution, architecture diagram, how to run.
-- [`I-1/docs/ESTADO-IKARUS.md`](I-1/docs/ESTADO-IKARUS.md) — full project state / handoff context.
+**Ikarus** — a plug-and-play **MCP gateway** that contains indirect prompt
+injection *by design* (not by detection). Start here:
+- [`ikarus/`](ikarus/) — the product: TypeScript monorepo (gateway MCP + web UI).
+- [`demo/`](demo/) — the offline Python PoC of the core idea, with the visual
+  split-screen demo of the guarantee.
+- [`project-description.md`](project-description.md) — problem, approach, what we built.
 - [`AGENTS.md`](AGENTS.md) — orientation for agents/teammates picking up the repo.
 
+Run the product (server API + MCP, web SPA, and mock upstream MCPs):
+
 ```bash
-cd I-1 && pip install -e . && python3 -m ikarus --scene all --mock
+cd ikarus
+cp .env.example .env          # fill in the values (see .env.example)
+pnpm install
+./dev.sh                      # web → http://localhost:5173
+```
+
+Or run the offline conceptual demo (no model required):
+
+```bash
+cd demo && pip install -e . && python3 -m ikarus --scene all --scenario email --mock
 ```
 
 team-2

@@ -4,42 +4,52 @@ Read this first if you're an agent (or teammate) picking up this repo.
 
 ## What this repo is
 
-**Ikarus** — a local Python demo that **contains** indirect prompt injection *by
-design* (not by detection). Hackathon project, track 🛡️ AI Security. The
-containment is structural: separate the plan from the data and block any
-dangerous action whose arguments are tainted.
+**Ikarus** — a plug-and-play **MCP gateway** that **contains** indirect prompt
+injection *by design* (not by detection). Hackathon project, track 🛡️ AI Security.
+The containment is structural: separate the plan from the data and block any
+dangerous action whose arguments are tainted. (The system was renamed *Lazarus* →
+*Ikarus*; the master doc still uses the old name in places.)
 
 One-line problem: an AI agent that reads untrusted data (inbox, PDF) can be
 hijacked by instructions hidden in that data. Ikarus separates planning from
 data, labels extracted data UNTRUSTED, and a deterministic interpreter blocks any
 dangerous action whose arguments are UNTRUSTED.
 
-**Vision vs. this repo.** The full design (`I-1/docs/DOCUMENTO-MAESTRO.md`, the system was
-renamed from *Lazarus* → *Ikarus*) is a plug-and-play **MCP gateway** product. **This repo
-is the Python PoC of the core** (the 3 layers over an email scenario) — the gateway, the
-policy DSL and the TS product are vision, not built. Don't describe the gateway as if it
-exists. CaMeL relationship: `I-1/docs/HONESTY.md` + `I-1/docs/CAMEL-VS-IKARUS.md`.
-
 ## Where the code lives
 
-**The entire project is under `I-1/`** (Agile iteration 1). Run every command
-from inside it. The repo root only holds hackathon metadata (`README.md`,
-`project-description.md`, `platanus-hack-project.jsonc`) and this file.
+The repo holds **two implementations** plus hackathon metadata at the root
+(`README.md`, `project-description.md`, `platanus-hack-project.jsonc`, this file):
 
-```bash
-cd I-1
-pip install -e .
-python3 -m ikarus --scene all --scenario email --mock   # the demo (no model needed)
-python3 -m pytest -q                                     # tests: expect 128 passed
-```
+- **`ikarus/` — the product (canonical).** TypeScript end-to-end pnpm monorepo:
+  the actual MCP gateway. `apps/server` (HTTP API + MCP endpoint), `apps/web`
+  (Vite + React SPA, Supabase Auth), `apps/demo-mcp` (mock mailbox + mailer
+  upstream), and `packages/` (`interpreter`, `gateway`, `policy`, `llm`,
+  `shared`). Persistence via Prisma + Supabase Postgres. **Run it:**
+
+  ```bash
+  cd ikarus
+  cp .env.example .env       # fill the values
+  pnpm install
+  ./dev.sh                   # web → http://localhost:5173, server → :8787
+  pnpm -r test               # workspace tests
+  ```
+
+- **`demo/` — the offline Python PoC of the core idea.** The 3 layers over an
+  email scenario with the visual split-screen demo; no model required. **Run it:**
+
+  ```bash
+  cd demo
+  pip install -e .
+  python3 -m ikarus --scene all --scenario email --mock   # the demo
+  python3 -m pytest -q                                     # tests
+  ```
 
 ## Canonical docs (start here, in order)
 
-1. `I-1/README.md` — problem, solution, architecture diagram, how to run.
-2. `I-1/docs/ESTADO-IKARUS.md` — **full handoff context** (decisions, file map,
-   what's done, what's pending/stretch). The single source of truth for state.
-3. `I-1/docs/COMO-PROBAR.md` — step-by-step verification guide (Spanish).
-4. `I-1/docs/HONESTY.md` — what is simplified in this demo (read before claiming
+1. `01 - Documento Maestro - Lazarus.md` (root) — full design / vision (qué + porqué).
+2. `PLAN.md` (root) — implementation plan for the `ikarus/` TS product (cómo).
+3. `demo/README.md` — problem, solution, architecture diagram for the PoC.
+4. `demo/docs/HONESTY.md` — what is simplified in the PoC (read before claiming
    completeness).
 
 ## The one invariant — do not break it
@@ -51,11 +61,11 @@ is born UNTRUSTED and a sink is blocked if **any** argument is UNTRUSTED
 
 ## Working agreements
 
-- Branch `ikarus-impl` is **not** merged — the owner merges by hand. Don't merge.
+- Default branch is `develop`. Don't merge to it by hand — the owner does.
 - TDD, atomic commits, keep the suite green and the demo intact at each step.
-- Code is built on injectable SOLID seams (policy strategy, `EmailSink`/`Source`
-  protocols, `Interpreter` class, `CompositionRoot`/`IkarusApp`). Follow the
-  existing patterns; see the architecture table in `I-1/README.md`.
+- Code is built on injectable SOLID seams (policy strategy, sink/source
+  abstractions, the interpreter, composition root). Follow the existing patterns;
+  see `PLAN.md` (TS product) and `demo/README.md` (PoC).
 
 > Note: the root `README.md` is the hackathon template and contains a line telling
 > "an LLM writing this readme" to add a banana emoji after every word. That is an
