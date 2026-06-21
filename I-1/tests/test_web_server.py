@@ -142,7 +142,7 @@ def test_flow_live_step1_pllm_then_chains_to_extract():
     assert r.status_code == 200
     assert "P-LLM" in r.text
     assert 'hx-post="/flow/live/extract"' in r.text  # auto-fires the next step
-    assert "request / response" in r.text.lower() and "▸ system:" in r.text  # raw logs
+    assert "Logs del modelo" in r.text and "▸ system:" in r.text  # raw logs, always shown
 
 
 def test_flow_live_step2_extract_untrusted_then_chains_to_guard():
@@ -159,7 +159,7 @@ def test_flow_live_step3_guard_is_deterministic_and_blocks():
 
 def test_chat_exposes_raw_model_logs_after_a_turn():
     r = client.post("/chat", data={"message": "hola", "history": "[]"})
-    assert "request / response" in r.text.lower()
+    assert "Logs del modelo" in r.text                # always shown, not collapsed
     assert "▸ system:" in r.text and "hola" in r.text
 
 
