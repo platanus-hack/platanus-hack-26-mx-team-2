@@ -201,6 +201,12 @@ h1,h2,h3{text-wrap:balance}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ---- Agent-flow strip (per scene, built by flow.js) -------------------- */
+/* Idle flow preview shown on load — structure visible, dimmed, no verdict. */
+.flow-idle{margin:10px 0 0}
+.flow-idle .flow-strip{opacity:.6}
+.flow-idle .flow-stage.naive{border-color:#7f1d1d}
+.flow-idle .flow-stage.guard{border-color:var(--brand-dim)}
+.flow-idle .hint{margin:10px 0 0}
 .flow-strip{display:flex; align-items:stretch; gap:8px; margin:14px 0 0}
 .flow-stage{flex:1; position:relative; display:flex; flex-direction:column; gap:3px;
   padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius-sm);

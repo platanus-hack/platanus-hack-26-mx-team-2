@@ -55,7 +55,27 @@
           Con modelos locales tarda unos segundos; usa uno ágil (p. ej. <code>gemma-3-12b</code>,
           <code>gpt-oss-20b</code>) — los de razonamiento son lentos.</span>
       </div>
-      <div id="live-result" aria-live="polite"></div>
+      <div id="live-result" aria-live="polite">
+        {# Idle preview: the flow STRUCTURE is visible on load, but no verdict is
+           shown until you actually run it. "Ejecutar en vivo" replaces this. #}
+        <div class="flow-idle">
+          <div class="flow-strip">
+            <div class="flow-stage naive"><span class="flow-dot"></span>
+              <span class="flow-tag">Capa 0</span><span class="flow-name">Agente ingenuo</span></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-stage"><span class="flow-dot"></span>
+              <span class="flow-tag">Capa 1</span><span class="flow-name">P-LLM</span></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-stage"><span class="flow-dot"></span>
+              <span class="flow-tag">Capa 2</span><span class="flow-name">Q-LLM</span></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-stage guard"><span class="flow-dot"></span>
+              <span class="flow-tag">Capa 3</span><span class="flow-name">Guardia</span></div>
+          </div>
+          <p class="hint">Pulsa <strong>Ejecutar en vivo ▶</strong> para correr el proceso real,
+            capa por capa, y ver el <strong>veredicto al final</strong> (no se precomputa nada).</p>
+        </div>
+      </div>
 
       <div class="send-test">
         <button type="button" hx-post="/send-test" hx-target="#send-result"
