@@ -11,6 +11,21 @@ debe *causar* el daño / contenerlo, no solo detectarlo).
 Ikarus **se inspira en CaMeL** (DeepMind, "Defeating Prompt Injections by Design", 2025) pero
 **NO es CaMeL** ni lo reimplementa. La palabra "CaMeL" aparece solo como **cita académica**.
 
+## Estructura del repo (Agile)
+
+Todo el prototipo vive ahora bajo **`I-1/`** (Agile, iteración 1). **Todos los comandos se
+corren desde dentro de `I-1/`:**
+
+```
+cd I-1
+pip install -e .
+python3 -m ikarus ...
+python3 -m pytest
+```
+
+La meta a nivel de repo (`.gitignore`, `.superpowers`) se queda en la **raíz del repo**, fuera
+de `I-1/`.
+
 ## Las tres capas (la garantía que demuestra)
 
 1. **P-LLM (planificador)** — `ikarus/p_llm.py`. Ve SOLO la petición confiable del usuario + el
@@ -44,35 +59,74 @@ Ikarus **se inspira en CaMeL** (DeepMind, "Defeating Prompt Injections by Design
 ## Modo híbrido `--live` (importante)
 
 - Con `--live`, **solo el P-LLM corre contra LM Studio** (Escena 1 muestra al modelo planeando).
-  Si el modelo no responde o devuelve JSON inválido, cae a un plan canónico con aviso en pantalla.
+  Ahora funciona de forma robusta contra LM Studio:
+  - **Modelos de razonamiento (Qwen3, DeepSeek-R1…) soportados:** el cliente les da un
+    presupuesto de tokens mayor **y rescata el plan JSON de `reasoning_content`** (estos modelos
+    emiten el plan ahí y dejan `content` vacío). Env: `IKARUS_MAX_TOKENS` (default 1024),
+    `IKARUS_REASONING_MAX_TOKENS` (default 8192).
+  - **El plan del P-LLM se valida antes de ejecutarse** (`interpreter.validate_plan`): un plan
+    válido por esquema pero **inejecutable** (referencia de paso mala, arg de sink faltante/extra,
+    sink desconocido) **cae al plan canónico** con el aviso `[note]` en pantalla, sin crashear.
+  - **El system prompt del P-LLM se reforzó** (forma exacta del plan + ejemplo + campos de la
+    petición disponibles) para que los modelos locales emitan planes válidos de forma confiable.
+  - **Modelos planificadores recomendados:** `google/gemma-3-12b`, `openai/gpt-oss-20b`,
+    `google/gemma-3-27b`. Los de razonamiento también funcionan pero pueden caer al fallback si
+    emiten un plan inválido. Se elige modelo con `IKARUS_MODEL` (los ids pueden ir con prefijo,
+    p. ej. `google/gemma-3-12b`).
 - **El Q-LLM (extracción) SIEMPRE es mock determinista**, incluso en `--live` — no está cableado
-  al modelo. La garantía de taint se sostiene igual (la salida nace UNTRUSTED).
-- Los **sinks están mockeados**: nunca se envía un correo real.
+  al modelo (nace UNTRUSTED por diseño). La garantía de taint se sostiene igual. El bloqueo de la
+  Escena 2 también es determinista (lo decide el intérprete, no el modelo).
+- **Correo real ahora es OPCIONAL** vía un sink intercambiable (ver abajo). `--mock`/`--live`
+  controla **solo el planificador P-LLM**; el sink se controla aparte con `IKARUS_SINK`.
+
+## Sink de correo (envío real opcional)
+
+- `IKARUS_SINK=mock` (default) — **nunca envía**. `IKARUS_SINK=resend` — envío real vía Resend.
+- Secreto **solo por env** `RESEND_API_KEY`; remitente vía `IKARUS_EMAIL_FROM`.
+- **Backstop duro:** el sink real solo envía a direcciones en `IKARUS_ALLOWED_RECIPIENTS`
+  (separadas por coma). Allowlist vacía o destinatario fuera de la lista → **rechazado y
+  registrado** (nunca crashea; los errores de transporte/API también se capturan).
+- El intérprete y el agente ingenuo enrutan `send_email` por este sink. El agente ingenuo, cuando
+  es secuestrado, **sí envía** pero solo a una dirección de la allowlist.
+- Las direcciones del escenario son sobre-escribibles por env para que un demo en vivo llegue a tu
+  propia bandeja: `IKARUS_TRUSTED_RECIPIENT` y `IKARUS_ATTACKER_ADDR`.
+- `share_doc` sigue mock.
 
 ## Estado del código
 
 - **Rama:** `ikarus-impl` (NO fusionada a `master`). ~36 commits.
-- **Tests:** `50 passed` (pytest). Cobertura de las tres garantías + las tres escenas.
+- **Tests:** `82 passed` (pytest). Cobertura de las tres garantías + las tres escenas.
 - **Instalable:** `pip install -e .` funciona (verificado).
 - Hay un warning de `pytest-asyncio` que es **del entorno** (plugin global, no es dependencia del
   proyecto, no hay código async). No es culpa del código.
 
 ### Mapa de archivos (`ikarus/`)
 - `config.py` — settings de LM Studio (env: `IKARUS_BASE_URL`, `IKARUS_MODEL`, `IKARUS_API_KEY`).
+  **Creció:** presupuestos de tokens (`IKARUS_MAX_TOKENS`, `IKARUS_REASONING_MAX_TOKENS`),
+  `is_reasoning_model`, y settings del sink (`IKARUS_SINK`, `RESEND_API_KEY`, `IKARUS_EMAIL_FROM`,
+  `IKARUS_ALLOWED_RECIPIENTS`, `IKARUS_TRUSTED_RECIPIENT`, `IKARUS_ATTACKER_ADDR`).
 - `labels.py` — `Trust`, `Provenance`, `Tainted` (inmutable) + ley de taint (UNTRUSTED domina).
 - `schemas.py` — modelos pydantic: `Plan`, `PlanStep`, `ArgRef`, `Extraction`.
 - `tools/` — `registry.py` (SOURCE/SINK + sensitive_args), `sources.py` (UNTRUSTED), `sinks.py` (mock).
+- `tools/email_sink.py` — **NUEVO:** providers Mock/Resend + allowlist + `SinkError`/`SinkBlocked`
+  + factory + CLI de smoke.
 - `policy.py` — guardia: bloquea si un arg sensible es UNTRUSTED; + stub control-flow (B3).
 - `llm_client.py` — wrapper OpenAI-compatible para LM Studio (import perezoso, testeable por DI).
+  **Creció:** presupuesto de tokens para razonamiento + rescate de `reasoning_content` + parseo
+  JSON tolerante.
 - `q_llm.py` — cuarentena: extract() siempre UNTRUSTED.
-- `p_llm.py` — planificador: solo request+catálogo, fallback a plan canónico.
-- `interpreter.py` — guardia determinista: corre el plan, propaga taint, bloquea sinks.
-- `naive_agent.py` — agente ingenuo que se deja secuestrar (el contraste).
-- `scenarios.py` — escenarios `email` y `pdf` con fixtures de inyección.
+- `p_llm.py` — planificador: solo request+catálogo, fallback a plan canónico. **Creció:** prompt
+  reforzado + `request_fields`.
+- `interpreter.py` — guardia determinista: corre el plan, propaga taint, bloquea sinks (ahora 138
+  líneas). **Creció:** `validate_plan` + sinks inyectables + manejo de `SinkError`.
+- `naive_agent.py` — agente ingenuo que se deja secuestrar (el contraste). **Creció:** sink inyectable.
+- `scenarios.py` — escenarios `email` y `pdf` con fixtures de inyección. **Creció:** direcciones
+  sobre-escribibles por env.
 - `tui.py` — render `rich` (Taint Ledger + veredicto). **Ojo:** usa `Console(file=io.StringIO())`
   para grabar sin imprimir; el CLI imprime el texto devuelto (si rompes esto, cada escena se
   imprime doble — ya pasó y se arregló).
-- `cli.py` / `__main__.py` — runner de las 3 escenas + wiring híbrido `--live`.
+- `cli.py` / `__main__.py` — runner de las 3 escenas + wiring híbrido `--live`. **Creció:** cablea
+  el sink.
 
 ### Documentación
 - `README.md` — quickstart (inglés).
@@ -91,10 +145,11 @@ Clonado en `../camel-reference/` (hermano de este proyecto), Apache-2.0. Núcleo
 
 ## Pendientes / próximos pasos posibles
 
-1. **Probar `--live` contra LM Studio real** (ahora mismo solo se validó `--mock`). Ver
-   `docs/COMO-PROBAR.md`.
-2. **Stretch B2** (taint por flujo de control real) — solo si el dueño lo aprueba. Requiere
-   extender `schemas.py` (condicionales), `interpreter.py` y `policy.py:propagate_control_flow_taint`.
-3. **Stretch C2** (vista web) o **escenario 3** (web/pago) — fuera de alcance core.
+1. **Q-LLM real:** la extracción sigue siendo un mock determinista en todos los modos (nace
+   UNTRUSTED por diseño). Cablearla a un modelo es trabajo pendiente.
+2. **Stretch B2** (taint por flujo de control real) — **EN COLA**, solo si el dueño lo aprueba.
+   Requiere extender `schemas.py` (condicionales), `interpreter.py` y
+   `policy.py:propagate_control_flow_taint`.
+3. **Stretch C2 (vista web):** **diseñada pero NO construida** — pendiente.
 4. **Decisión de cierre de rama:** `ikarus-impl` no está fusionada. Opciones: merge a `master`,
    PR, o dejarla. (Pendiente que decida el dueño.)

@@ -12,11 +12,19 @@ Design", 2025). It does NOT reimplement it. What we simplified, explicitly:
    TRUSTED recipient. There is no general policy DSL.
 4. **Hybrid live mode.** With `--live`, the **P-LLM planner runs against LM Studio**
    (Scene 1 shows the local model emitting the plan). The **Q-LLM extractor is always a
-   deterministic mock**, even in `--live` — it is not wired to the model. On LM Studio
-   failure or invalid JSON, the planner falls back to a canonical plan, flagged on
-   screen. The taint guarantee holds regardless of mode, because the interpreter is
-   deterministic and Q-LLM output is born UNTRUSTED either way.
-5. **Sinks are mocked.** No real email is ever sent.
+   deterministic mock**, even in `--live` — it is not wired to the model. The P-LLM
+   planner live path also (a) supports reasoning models by rescuing the JSON plan from
+   `reasoning_content` and granting them a larger token budget, and (b) validates the
+   model's plan and falls back to the canonical plan if it is schema-valid but
+   unexecutable. On LM Studio failure or invalid JSON, the planner likewise falls back to
+   a canonical plan, flagged on screen. The taint guarantee holds regardless of mode,
+   because the interpreter is deterministic and Q-LLM output is born UNTRUSTED either way.
+5. **Sinks are mock by default.** With `IKARUS_SINK=mock` (the default) no real email is
+   ever sent. A real email sink is available via Resend (`IKARUS_SINK=resend`), gated by a
+   hard recipient allowlist (`IKARUS_ALLOWED_RECIPIENTS`): it refuses to send with an empty
+   allowlist or to any off-allowlist recipient, and transport/API failures are caught
+   (recorded, never crash). With the real sink the naive (hijacked) agent really does send
+   — but ONLY to an operator-approved, allowlisted address. `share_doc` stays mock.
 
 ## What we DO claim
 
@@ -24,6 +32,8 @@ Design", 2025). It does NOT reimplement it. What we simplified, explicitly:
 - The Q-LLM's output is born UNTRUSTED regardless of content (taint origin).
 - The interpreter blocks any sink whose sensitive argument is UNTRUSTED — it is
   deterministic and cannot be talked out of it (containment, not detection).
+- The real email sink, when enabled, can only reach operator-approved addresses (the
+  allowlist), so the demo never exfiltrates to an uncontrolled third party.
 
 ## Evidence: real CaMeL vs Ikarus (file/line counts)
 
@@ -33,9 +43,11 @@ make the simplifications above concrete rather than rhetorical.
 
 - **Interpreter.** Real CaMeL's interpreter is an AST-walking interpreter for a
   restricted Python subset: `src/camel/interpreter/interpreter.py`, **2716 lines**.
-  Ikarus's `ikarus/interpreter.py` is a linear structured-plan executor, ~70 lines. This
-  is simplification (1) above, made literal: roughly 2700 lines of AST-node handling
-  collapse to a loop over an ordered list of steps.
+  Ikarus's `ikarus/interpreter.py` is a linear structured-plan executor, ~138 lines (it
+  gained `validate_plan` and an injectable sink) — still NOT an AST-walking interpreter.
+  This is simplification (1) above, made literal: roughly 2700 lines of AST-node handling
+  collapse to a loop over an ordered list of steps, orders of magnitude smaller than real
+  CaMeL's 2716-line AST interpreter.
 - **Value / capability system.** Real CaMeL's `src/camel/interpreter/value.py`
   (**1460 lines**) is where capabilities attach to runtime values and where
   control-flow taint propagation actually lives — the gap named by Ikarus's stub

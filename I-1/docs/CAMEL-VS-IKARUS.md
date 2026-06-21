@@ -11,7 +11,7 @@ copy from the reference repo — the comparison below is read-only research, not
 
 | Real CaMeL component | File | Lines | Ikarus equivalent | What's simplified |
 |---|---|---|---|---|
-| AST-walking interpreter for a restricted Python subset | `src/camel/interpreter/interpreter.py` | 2716 | `ikarus/interpreter.py` (~70 lines) | Linear executor over an ordered plan (A1); no sandboxed Python, no conditionals/loops |
+| AST-walking interpreter for a restricted Python subset | `src/camel/interpreter/interpreter.py` | 2716 | `ikarus/interpreter.py` (~138 lines; also validates the model's plan before execution via `validate_plan()`, with an injectable sink map) | Linear executor over an ordered plan (A1); no sandboxed Python, no conditionals/loops |
 | Value / capability system (control-flow taint lives here) | `src/camel/interpreter/value.py` | 1460 | `ikarus/labels.py` (~30 lines) | Data-flow taint only — no control-flow taint; gap named explicitly by the stub `ikarus/policy.py:propagate_control_flow_taint` |
 | Quarantined (extractor) LLM | `src/camel/quarantined_llm.py` | 103 | `ikarus/q_llm.py` | Faithful in spirit: narrow extractor, output born UNTRUSTED by construction |
 | Privileged (planner) LLM | `src/camel/pipeline_elements/privileged_llm.py` | 483 | `ikarus/p_llm.py` (~50 lines) | Plan emission only, plus hybrid live/mock/fallback path; no general tool-call retry machinery |
@@ -21,6 +21,7 @@ copy from the reference repo — the comparison below is read-only research, not
 | Per-domain policies — travel | `src/camel/pipeline_elements/security_policies/travel.py` | 150 | *(none)* | Not modeled |
 | Per-domain policies — workspace | `src/camel/pipeline_elements/security_policies/workspace.py` | 270 | *(none)* | Not modeled |
 | Top-level orchestration | `main.py` + `run_code.py` (repo root) | 114 + 161 | `ikarus/cli.py` | Three fixed scenes/scenarios instead of a general runnable pipeline |
+| Side-effect tools (sinks) | mocked AgentDojo tools | — | `ikarus/tools/email_sink.py` (~95 lines) | Swappable `mock`\|`Resend` email sink gated by a recipient allowlist; mock by default. The real Resend path is an Ikarus-specific addition (not part of CaMeL), kept safe by the allowlist |
 
 ## Best honest talking points for judges
 
@@ -37,3 +38,8 @@ copy from the reference repo — the comparison below is read-only research, not
   inspired.** Its shape — extract-only, output born untrusted regardless of content —
   is the same shape as Ikarus's `ikarus/q_llm.py`. That's the part of the design we
   ported in spirit, and it's the part doing the real security work in our demo.
+- **Containment is demonstrated against a real side effect, not just a mock.** Ikarus
+  can now optionally send REAL email behind a deterministic recipient allowlist, while
+  the security guarantee — a taint-gated sink — is still enforced by the deterministic
+  interpreter. The injection is contained even when the sink is a genuine outbound
+  action, not only when it's mocked.
