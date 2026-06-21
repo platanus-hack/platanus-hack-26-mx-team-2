@@ -41,12 +41,20 @@ class MockEmailSink:
 
 
 def _http_post(url: str, headers: dict, payload: dict) -> dict:
-    import urllib.request  # stdlib only; no extra dependency
+    import urllib.error  # stdlib only; no extra dependency
+    import urllib.request
 
     data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-    with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 (trusted URL)
-        return json.loads(resp.read().decode("utf-8") or "{}")
+    # Resend (and many APIs) sit behind a WAF that 403s the default urllib
+    # User-Agent; set an explicit one so the request isn't blocked.
+    hdrs = {"User-Agent": "ikarus/0.1", **headers}
+    req = urllib.request.Request(url, data=data, headers=hdrs, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 (trusted URL)
+            return json.loads(resp.read().decode("utf-8") or "{}")
+    except urllib.error.HTTPError as exc:  # surface the API error body, not just the code
+        detail = exc.read().decode("utf-8", "replace")[:300]
+        raise SinkError(f"HTTP {exc.code}: {detail}") from exc
 
 
 class ResendEmailSink:
@@ -66,7 +74,9 @@ class ResendEmailSink:
                  "Content-Type": "application/json"},
                 {"from": self._sender, "to": [to], "subject": _SUBJECT, "text": body},
             )
-        except Exception as exc:  # network / API failure — don't crash the demo
+        except SinkError:
+            raise  # already carries the API error detail
+        except Exception as exc:  # network failure — don't crash the demo
             raise SinkError(f"send failed: {exc}") from exc
         return f"[RESEND send_email] to={to} body={body!r}"
 
