@@ -186,8 +186,26 @@ Lo que recibes:
 
 - **Escena 1:** `VERDICT: ALLOWED` → te llega un correo legítimo a tu inbox.
 - **Escena 2:** `VERDICT: BLOCKED` por taint → **no se envía nada**.
-- **Escena 3:** el agente ingenuo es secuestrado → el correo de "exfiltración" cae en tu inbox
-  `+attacker`.
+- **Escena 3:** el agente ingenuo es secuestrado (`hijacked=True`) e **intenta** exfiltrar a la
+  dirección del atacante.
+  - Con un **dominio verificado** (`IKARUS_EMAIL_FROM=ikarus@tudominio.com`): el correo de
+    "exfiltración" **se entrega** a esa dirección.
+  - Con el **remitente sandbox** `onboarding@resend.dev`: Resend **rechaza** el envío
+    (`HTTP 403: You can only send testing emails to your own email address`). Se registra como
+    `BLOCKED: HTTP 403 ...` y **no rompe** el demo, pero el correo del atacante NO llega.
+
+> ⚠️ **Limitación del sandbox de Resend (importante).** El remitente `onboarding@resend.dev`
+> **solo entrega a la dirección exacta dueña de la cuenta** (la del signup). Por eso:
+> - La Escena 1 llega (va a tu propio correo) pero la Escena 3 NO (va a `+attacker`, que Resend
+>   trata como otra dirección y rechaza).
+> - Es **imposible** que la Escena 3 entregue *y* mantenga `hijacked=True` con el sandbox: para
+>   entregar, el atacante tendría que ser tu correo exacto, pero entonces `atacante ==
+>   destinatario` ⇒ `hijacked=False`.
+> - **Solución (única):** verifica un dominio en https://resend.com/domains, agrega los 3
+>   registros DNS, y pon `IKARUS_EMAIL_FROM=ikarus@tudominio.com`. Entonces puedes enviar a
+>   cualquier destinatario y las 3 escenas entregan con `hijacked=True`.
+> - `<anything>@zoradal.resend.app` es una dirección de **recepción** (inbound), NO un dominio de
+>   envío verificado — no sirve para esto (probado: 403).
 
 > Default seguro para el jurado: si **NO** defines `IKARUS_SINK`, todo queda en mock y no se
 > envía ningún correo. Una key inválida o un fallo de red se registra como
