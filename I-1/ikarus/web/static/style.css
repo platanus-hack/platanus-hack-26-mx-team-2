@@ -145,6 +145,39 @@ h1,h2,h3{text-wrap:balance}
 .badge.ok{color:var(--ok); background:var(--ok-bg); border-color:var(--ok-line)}
 .badge.danger{color:var(--danger); background:var(--danger-bg); border-color:var(--danger-line)}
 
+/* ---- Agent-flow strip (per scene, built by flow.js) -------------------- */
+.flow-strip{display:flex; align-items:stretch; gap:8px; margin:14px 0 0}
+.flow-stage{flex:1; position:relative; display:flex; flex-direction:column; gap:3px;
+  padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius-sm);
+  background:var(--surface-2); transition:border-color var(--t), box-shadow var(--t),
+  background var(--t)}
+.flow-stage.active{border-color:var(--brand); background:var(--brand-bg);
+  box-shadow:0 0 0 1px var(--brand-dim) inset, 0 0 18px rgba(254,117,31,.18)}
+.flow-dot{width:9px; height:9px; border-radius:50%; background:var(--line);
+  transition:background var(--t), box-shadow var(--t)}
+.flow-stage.active .flow-dot{background:var(--brand); box-shadow:0 0 10px var(--brand)}
+.flow-tag{font-family:var(--mono); font-size:9.5px; letter-spacing:.05em;
+  text-transform:uppercase; color:var(--muted)}
+.flow-name{font-weight:600; font-size:12.5px}
+.flow-arrow{align-self:center; color:var(--muted); font-size:15px}
+.flow-taint,.flow-verdict{position:absolute; top:-8px; right:8px; font-family:var(--mono);
+  font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:999px; opacity:0;
+  transform:translateY(3px); transition:opacity var(--t), transform var(--t); pointer-events:none}
+.flow-taint{color:var(--danger); background:var(--danger-bg); border:1px solid var(--danger-line)}
+.flow-taint.on,.flow-verdict.on{opacity:1; transform:none}
+.flow-verdict.pass{color:var(--ok); background:var(--ok-bg); border:1px solid var(--ok-line)}
+.flow-verdict.block{color:var(--danger); background:var(--danger-bg); border:1px solid var(--danger-line)}
+.flow-controls{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 0 0}
+.flow-btn{background:var(--brand); color:#1a0c02; border:0; border-radius:var(--radius-sm);
+  padding:6px 12px; font:700 12px var(--sans); cursor:pointer; touch-action:manipulation;
+  transition:background var(--t)}
+.flow-btn:hover{background:#ff8534}
+.flow-btn.ghost{background:transparent; color:var(--muted); border:1px solid var(--line)}
+.flow-btn.ghost:hover{color:var(--ink); border-color:var(--brand-dim)}
+.flow-status{font-family:var(--mono); font-size:11.5px; color:var(--muted)}
+table.ledger tbody tr.pending{opacity:.18; transition:opacity var(--t)}
+@media (max-width:560px){.flow-strip{flex-wrap:wrap}.flow-arrow{display:none}}
+
 /* ---- Taint ledger ------------------------------------------------------ */
 .ledger-wrap{overflow-x:auto; margin-top:14px; border:1px solid var(--line); border-radius:var(--radius-sm)}
 table.ledger{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12.5px;
