@@ -86,3 +86,27 @@ def pdf_scenario() -> Scenario:
 
 
 SCENARIOS = {"email": email_scenario, "pdf": pdf_scenario}
+
+
+class ScenarioRegistry:
+    """OOP seam over the scenario factories.
+
+    Each create() builds a fresh Scenario (addresses can be overridden by env
+    between runs), so callers never share a cached instance.
+    """
+
+    def __init__(self, factories: Mapping[str, "callable"]):
+        self._factories = dict(factories)
+
+    def names(self) -> list[str]:
+        return list(self._factories)
+
+    def create(self, name: str) -> Scenario:
+        return self._factories[name]()
+
+    def __contains__(self, name: str) -> bool:
+        return name in self._factories
+
+
+def default_scenarios() -> ScenarioRegistry:
+    return ScenarioRegistry(SCENARIOS)

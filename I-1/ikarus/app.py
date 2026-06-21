@@ -9,6 +9,7 @@ from typing import Callable, Optional
 from ikarus.interpreter import Interpreter
 from ikarus.naive_agent import run as run_naive
 from ikarus.p_llm import PrivilegedPlanner
+from ikarus.scenarios import ScenarioRegistry
 from ikarus.tui import TraceRenderer
 from ikarus.tools.email_sink import EmailSink
 from ikarus.tools.registry import ToolRegistry
@@ -16,7 +17,7 @@ from ikarus.tools.registry import ToolRegistry
 
 class IkarusApp:
     def __init__(self, *, registry: ToolRegistry, interpreter: Interpreter,
-                 email_sink: EmailSink, scenarios: dict,
+                 email_sink: EmailSink, scenarios: ScenarioRegistry,
                  client_factory: Callable[[], object],
                  renderer: Optional[TraceRenderer] = None):
         self._registry = registry
@@ -28,7 +29,7 @@ class IkarusApp:
 
     def run_scene(self, scene: int, scenario_name: str, mock: bool = True,
                   client=None) -> dict:
-        scenario = self._scenarios[scenario_name]()
+        scenario = self._scenarios.create(scenario_name)
         if scene == 3:
             res = run_naive(scenario.request, scenario.inbox_text,
                             scenario.trusted_recipient, mock=mock,

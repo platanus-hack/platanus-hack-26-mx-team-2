@@ -1,5 +1,5 @@
 import argparse
-from ikarus.scenarios import SCENARIOS
+from ikarus.scenarios import default_scenarios
 from ikarus.composition import CompositionRoot
 from ikarus.config import load_settings
 from ikarus.tools.email_sink import make_email_sink
@@ -16,7 +16,7 @@ def run_scene(scene: int, scenario_name: str, mock: bool = True, client=None) ->
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ikarus")
     parser.add_argument("--scene", choices=["1", "2", "3", "all"], default="all")
-    parser.add_argument("--scenario", choices=list(SCENARIOS), default="email")
+    parser.add_argument("--scenario", choices=default_scenarios().names(), default="email")
     parser.add_argument("--mock", action="store_true", default=True)
     parser.add_argument("--live", dest="mock", action="store_false")
     args = parser.parse_args(argv)

@@ -1,4 +1,6 @@
-from ikarus.scenarios import email_scenario, pdf_scenario, SCENARIOS
+import pytest
+from ikarus.scenarios import (email_scenario, pdf_scenario, SCENARIOS,
+                              ScenarioRegistry, default_scenarios)
 
 
 def test_email_scenario_has_injection_in_inbox():
@@ -33,3 +35,23 @@ def test_addresses_overridable_for_real_sends(monkeypatch):
     assert s.request_values["recipient"].value == "me@gmail.com"
     assert s.attacker_address == "me+attacker@gmail.com"
     assert "me+attacker@gmail.com" in s.inbox_text
+
+# --- ScenarioRegistry: OOP seam over the scenario factories ---
+
+def test_default_scenarios_lists_names():
+    reg = default_scenarios()
+    assert set(reg.names()) == {"email", "pdf"}
+
+def test_scenario_registry_creates_fresh_instances():
+    reg = default_scenarios()
+    s1, s2 = reg.create("email"), reg.create("email")
+    assert s1 is not s2  # each call builds a fresh Scenario (env can change)
+    assert s1.name == "email"
+
+def test_scenario_registry_unknown_name_raises():
+    with pytest.raises(KeyError):
+        default_scenarios().create("nope")
+
+def test_scenario_registry_contains():
+    reg = default_scenarios()
+    assert "pdf" in reg and "nope" not in reg

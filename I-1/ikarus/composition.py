@@ -9,7 +9,7 @@ from ikarus.app import IkarusApp
 from ikarus.config import Settings
 from ikarus.interpreter import Interpreter
 from ikarus.llm_client import LLMClient
-from ikarus.scenarios import SCENARIOS
+from ikarus.scenarios import ScenarioRegistry, default_scenarios
 from ikarus.tools.email_sink import EmailSink
 from ikarus.tools.registry import ToolRegistry, default_registry
 from ikarus.tools.sinks import share_doc
@@ -18,12 +18,12 @@ from ikarus.tools.sinks import share_doc
 class CompositionRoot:
     def __init__(self, settings: Settings, *, email_sink: EmailSink,
                  registry: Optional[ToolRegistry] = None,
-                 scenarios: dict = SCENARIOS,
+                 scenarios: Optional[ScenarioRegistry] = None,
                  client_factory: Optional[Callable[[], object]] = None):
         self._settings = settings
         self._email_sink = email_sink
         self._registry = registry or default_registry()
-        self._scenarios = scenarios
+        self._scenarios = scenarios or default_scenarios()
         self._client_factory = client_factory or (lambda: LLMClient(settings))
 
     def build(self) -> IkarusApp:
