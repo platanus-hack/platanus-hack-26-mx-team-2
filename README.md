@@ -6,6 +6,17 @@
 
 Track: 🛡️ AI Security
 
+## 👉 The project lives under [`I-1/`](I-1/)
+
+**Ikarus** — containing indirect prompt injection *by design*. Start here:
+- [`I-1/README.md`](I-1/README.md) — problem, solution, architecture diagram, how to run.
+- [`I-1/docs/ESTADO-IKARUS.md`](I-1/docs/ESTADO-IKARUS.md) — full project state / handoff context.
+- [`AGENTS.md`](AGENTS.md) — orientation for agents/teammates picking up the repo.
+
+```bash
+cd I-1 && pip install -e . && python3 -m ikarus --scene all --mock
+```
+
 team-2
 
 - Luis Fernando Maldonado ([@sphnxmaldo](https://github.com/sphnxmaldo))
