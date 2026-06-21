@@ -1,6 +1,6 @@
 # Estado de Ikarus — contexto para retomar
 
-> Documento de traspaso. Léelo antes de tocar nada. Última actualización: 2026-06-20.
+> Documento de traspaso. Léelo antes de tocar nada. Última actualización: 2026-06-21.
 
 ## Qué es
 
@@ -36,6 +36,10 @@ de `I-1/`.
 3. **Intérprete (guardia determinista)** — `ikarus/interpreter.py`. Ejecuta el plan, propaga
    etiquetas de procedencia (taint) por los valores y aplica políticas (`ikarus/policy.py`)
    antes de cada acción peligrosa (sink). No es un LLM: no se le convence con palabras.
+   La política ahora es **deny-by-default**: bloquea el sink si **CUALQUIERA** de sus args es
+   UNTRUSTED (protege el cuerpo del correo / contenido del doc compartido, no solo el
+   destinatario). Implementada como estrategia `SecurityPolicy` (typing.Protocol) +
+   `DenyUntrustedArgsPolicy` en `ikarus/policy.py`.
 
 ## Las tres escenas del demo
 
@@ -43,6 +47,7 @@ de `I-1/`.
   → `ALLOWED`. El P-LLM nunca leyó el correo.
 - **Escena 2 (garantía de taint):** el destinatario sale de datos en cuarentena → `UNTRUSTED`
   → **BLOQUEADO en el sink** por el guardia (`BLOCKED: sensitive arg 'to' ... is UNTRUSTED`).
+  Con la política deny-by-default, **cualquier** arg UNTRUSTED (no solo `to`) basta para bloquear.
 - **Escena 3 (contraste):** agente ingenuo de un solo LLM → secuestrado → exfiltra a
   `attacker@evil.com (hijacked=True)`.
 
@@ -55,6 +60,41 @@ de `I-1/`.
   **B2 (implementarlo de verdad) está EN COLA como stretch — NO lo hagas sin que el dueño lo
   apruebe.**
 - **(c) Presentación = C1:** TUI con `rich` (tabla "Taint Ledger" + veredicto PASS/BLOCK).
+
+## Postura de seguridad (deny-by-default, tras auditoría)
+
+Una auditoría de seguridad reciente endureció el demo. Cambios clave:
+
+- **Política deny-by-default:** el sink se bloquea si **CUALQUIER** arg es UNTRUSTED (no solo el
+  destinatario). Estrategia `SecurityPolicy` (typing.Protocol) + `DenyUntrustedArgsPolicy` en
+  `ikarus/policy.py`.
+- **`validate_plan` rechaza destinatario desde literal:** un arg de destinatario originado en un
+  valor `literal`/inline se rechaza (nacería TRUSTED y saltaría el taint), pero `from="step"`
+  **sí** se permite para que el plan envenenado de la Escena 2 llegue a la política de runtime y
+  se bloquee ahí.
+- **Secretos fuera del `repr`:** `RESEND_API_KEY` y `api_key` usan `field(repr=False)`. La
+  allowlist de destinatarios se normaliza (trim + minúsculas). La config de Resend se valida
+  (fail fast si falta key o remitente).
+- **Inmutabilidad reforzada:** `ExecutionResult` usa tuplas; `Scenario.request_values` es un
+  `MappingProxyType`.
+- **Robustez:** `_parse_json` endurecido (escaneo `raw_decode`); choices vacías → `LLMError`;
+  `KeyError` envueltos como `ValueError`; `is_reasoning_model` excluye visión (`-vl`); errores
+  amigables en envs int; `q_llm` loguea fallos; el catálogo del planificador se deriva del
+  registry.
+
+## Refactor SOLID/OOP (EN CURSO)
+
+Refactor hacia OOP/SOLID en progreso. **Hecho hasta ahora:**
+
+- `EmailSink` (Protocol) + `MockEmailSink`/`ResendEmailSink` (transporte delgado) +
+  `AllowlistEmailSink` (decorator) + factory validante `make_email_sink`.
+- `Source` (Protocol) + `InboxSource`/`PdfSource` + `default_sources()`; el intérprete despacha
+  la fuente por `step.tool` (la ruta antes muerta `read_pdf` ahora funciona).
+- `SecurityPolicy` como estrategia.
+
+**Pendiente:** `Interpreter` como clase con colaboradores inyectados; clases
+`PrivilegedPlanner`/`QuarantineExtractor`; un `CompositionRoot` + `cli` delgado; split de config;
+`TraceRenderer`; `ScenarioRegistry`.
 
 ## Modo híbrido `--live` (importante)
 
@@ -95,7 +135,8 @@ de `I-1/`.
 ## Estado del código
 
 - **Rama:** `ikarus-impl` (NO fusionada a `master`). ~36 commits.
-- **Tests:** `82 passed` (pytest). Cobertura de las tres garantías + las tres escenas.
+- **Tests:** `102 passed` (pytest). Cobertura de las tres garantías + las tres escenas + los
+  endurecimientos de la auditoría.
 - **Instalable:** `pip install -e .` funciona (verificado).
 - Hay un warning de `pytest-asyncio` que es **del entorno** (plugin global, no es dependencia del
   proyecto, no hay código async). No es culpa del código.
@@ -107,18 +148,24 @@ de `I-1/`.
   `IKARUS_ALLOWED_RECIPIENTS`, `IKARUS_TRUSTED_RECIPIENT`, `IKARUS_ATTACKER_ADDR`).
 - `labels.py` — `Trust`, `Provenance`, `Tainted` (inmutable) + ley de taint (UNTRUSTED domina).
 - `schemas.py` — modelos pydantic: `Plan`, `PlanStep`, `ArgRef`, `Extraction`.
-- `tools/` — `registry.py` (SOURCE/SINK + sensitive_args), `sources.py` (UNTRUSTED), `sinks.py` (mock).
-- `tools/email_sink.py` — **NUEVO:** providers Mock/Resend + allowlist + `SinkError`/`SinkBlocked`
-  + factory + CLI de smoke.
-- `policy.py` — guardia: bloquea si un arg sensible es UNTRUSTED; + stub control-flow (B3).
+- `tools/` — `registry.py` (SOURCE/SINK + sensitive_args), `sinks.py` (mock).
+- `tools/sources.py` — **OOP:** `Source` (Protocol) + `InboxSource`/`PdfSource` +
+  `default_sources()` (todas nacen UNTRUSTED).
+- `tools/email_sink.py` — **OOP:** `EmailSink` (Protocol) + `MockEmailSink`/`ResendEmailSink`
+  (transporte delgado) + `AllowlistEmailSink` (decorator) + factory validante `make_email_sink`
+  + `SinkError`/`SinkBlocked` + CLI de smoke.
+- `policy.py` — guardia deny-by-default: `SecurityPolicy` (Protocol) + `DenyUntrustedArgsPolicy`
+  (bloquea si CUALQUIER arg es UNTRUSTED); + stub control-flow (B3).
 - `llm_client.py` — wrapper OpenAI-compatible para LM Studio (import perezoso, testeable por DI).
   **Creció:** presupuesto de tokens para razonamiento + rescate de `reasoning_content` + parseo
   JSON tolerante.
 - `q_llm.py` — cuarentena: extract() siempre UNTRUSTED.
 - `p_llm.py` — planificador: solo request+catálogo, fallback a plan canónico. **Creció:** prompt
   reforzado + `request_fields`.
-- `interpreter.py` — guardia determinista: corre el plan, propaga taint, bloquea sinks (ahora 138
-  líneas). **Creció:** `validate_plan` + sinks inyectables + manejo de `SinkError`.
+- `interpreter.py` — guardia determinista: corre el plan, propaga taint, bloquea sinks.
+  **Creció:** `validate_plan` (incluye la regla que rechaza destinatario desde `literal` pero
+  permite `from="step"`) + despacho de fuente/sink (source dispatch por `step.tool`, sink
+  inyectable) + manejo de `SinkError`.
 - `naive_agent.py` — agente ingenuo que se deja secuestrar (el contraste). **Creció:** sink inyectable.
 - `scenarios.py` — escenarios `email` y `pdf` con fixtures de inyección. **Creció:** direcciones
   sobre-escribibles por env.
@@ -145,11 +192,15 @@ Clonado en `../camel-reference/` (hermano de este proyecto), Apache-2.0. Núcleo
 
 ## Pendientes / próximos pasos posibles
 
-1. **Q-LLM real:** la extracción sigue siendo un mock determinista en todos los modos (nace
+1. **Refactor SOLID/OOP (EN CURSO):** terminar lo pendiente — `Interpreter` como clase con
+   colaboradores inyectados; clases `PrivilegedPlanner`/`QuarantineExtractor`; un
+   `CompositionRoot` + `cli` delgado; split de config; `TraceRenderer`; `ScenarioRegistry`.
+   (Ya hecho: sinks/sources/política como Protocols + decorator + factory — ver sección arriba.)
+2. **Q-LLM real:** la extracción sigue siendo un mock determinista en todos los modos (nace
    UNTRUSTED por diseño). Cablearla a un modelo es trabajo pendiente.
-2. **Stretch B2** (taint por flujo de control real) — **EN COLA**, solo si el dueño lo aprueba.
+3. **Stretch B2** (taint por flujo de control real) — **EN COLA**, solo si el dueño lo aprueba.
    Requiere extender `schemas.py` (condicionales), `interpreter.py` y
    `policy.py:propagate_control_flow_taint`.
-3. **Stretch C2 (vista web):** **diseñada pero NO construida** — pendiente.
-4. **Decisión de cierre de rama:** `ikarus-impl` no está fusionada. Opciones: merge a `master`,
-   PR, o dejarla. (Pendiente que decida el dueño.)
+4. **Stretch C2 (vista web):** **diseñada pero NO construida** — pendiente.
+5. **Decisión de cierre de rama:** `ikarus-impl` no está fusionada (el dueño la fusionará a
+   mano). Opciones: merge a `master`, PR, o dejarla. (Pendiente que decida el dueño.)

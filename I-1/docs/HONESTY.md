@@ -8,8 +8,10 @@ Design", 2025). It does NOT reimplement it. What we simplified, explicitly:
 2. **Data-flow taint only — no control-flow taint.** Real CaMeL taints values that
    *branch on* untrusted data. We do not. See the stub
    `ikarus/policy.py:propagate_control_flow_taint` for exactly where it would hook in.
-3. **Hard-wired policies, not a capability language.** `send_email`/`share_doc` require a
-   TRUSTED recipient. There is no general policy DSL.
+3. **One fixed policy, not a capability language.** The policy is deny-by-default:
+   `DenyUntrustedArgsPolicy` (a `SecurityPolicy` strategy) blocks a sink if ANY argument
+   is UNTRUSTED, so content (email body, shared doc) is gated exactly like the recipient —
+   not only a hand-picked sensitive subset. There is no general policy DSL.
 4. **Hybrid live mode.** With `--live`, the **P-LLM planner runs against LM Studio**
    (Scene 1 shows the local model emitting the plan). The **Q-LLM extractor is always a
    deterministic mock**, even in `--live` — it is not wired to the model. The P-LLM
@@ -21,7 +23,8 @@ Design", 2025). It does NOT reimplement it. What we simplified, explicitly:
    because the interpreter is deterministic and Q-LLM output is born UNTRUSTED either way.
 5. **Sinks are mock by default.** With `IKARUS_SINK=mock` (the default) no real email is
    ever sent. A real email sink is available via Resend (`IKARUS_SINK=resend`), gated by a
-   hard recipient allowlist (`IKARUS_ALLOWED_RECIPIENTS`): it refuses to send with an empty
+   hard recipient allowlist (`IKARUS_ALLOWED_RECIPIENTS`) applied by the
+   `AllowlistEmailSink` decorator that wraps the transport: it refuses to send with an empty
    allowlist or to any off-allowlist recipient, and transport/API failures are caught
    (recorded, never crash). With the real sink the naive (hijacked) agent really does send
    — but ONLY to an operator-approved, allowlisted address. `share_doc` stays mock.
@@ -30,8 +33,11 @@ Design", 2025). It does NOT reimplement it. What we simplified, explicitly:
 
 - The P-LLM never receives untrusted data (architectural guarantee).
 - The Q-LLM's output is born UNTRUSTED regardless of content (taint origin).
-- The interpreter blocks any sink whose sensitive argument is UNTRUSTED — it is
-  deterministic and cannot be talked out of it (containment, not detection).
+- The interpreter blocks any sink with *any* UNTRUSTED argument (deny-by-default), so
+  content and recipient alike are gated — it is deterministic and cannot be talked out of
+  it (containment, not detection). Plan validation also rejects a recipient sourced from a
+  literal/inline value (which would be born TRUSTED), while still allowing `from="step"`,
+  so the runtime taint block in Scene 2 still demonstrates.
 - The real email sink, when enabled, can only reach operator-approved addresses (the
   allowlist), so the demo never exfiltrates to an uncontrolled third party.
 
@@ -43,11 +49,12 @@ make the simplifications above concrete rather than rhetorical.
 
 - **Interpreter.** Real CaMeL's interpreter is an AST-walking interpreter for a
   restricted Python subset: `src/camel/interpreter/interpreter.py`, **2716 lines**.
-  Ikarus's `ikarus/interpreter.py` is a linear structured-plan executor, ~138 lines (it
-  gained `validate_plan` and an injectable sink) — still NOT an AST-walking interpreter.
-  This is simplification (1) above, made literal: roughly 2700 lines of AST-node handling
-  collapse to a loop over an ordered list of steps, orders of magnitude smaller than real
-  CaMeL's 2716-line AST interpreter.
+  Ikarus's `ikarus/interpreter.py` is a linear structured-plan executor, ~171 lines (it
+  grew slightly to validate the plan — including the literal-recipient rule — and to
+  dispatch sources/sinks) — still NOT an AST-walking interpreter. This is simplification
+  (1) above, made literal: roughly 2700 lines of AST-node handling collapse to a loop over
+  an ordered list of steps, orders of magnitude smaller than real CaMeL's 2716-line AST
+  interpreter.
 - **Value / capability system.** Real CaMeL's `src/camel/interpreter/value.py`
   (**1460 lines**) is where capabilities attach to runtime values and where
   control-flow taint propagation actually lives — the gap named by Ikarus's stub
@@ -66,8 +73,8 @@ make the simplifications above concrete rather than rhetorical.
   `src/camel/security_policy.py` (110 lines), plus per-domain policy modules under
   `src/camel/pipeline_elements/security_policies/`: banking (122 lines), slack
   (99 lines), travel (150 lines), workspace (270 lines). Ikarus has no policy engine —
-  `ikarus/policy.py` hard-wires the TRUSTED-recipient rule directly, simplification (3)
-  above.
+  `ikarus/policy.py` defines one fixed `DenyUntrustedArgsPolicy` (a `SecurityPolicy`
+  strategy) that denies any sink with an UNTRUSTED argument, simplification (3) above.
 - **Orchestration.** Real CaMeL's top-level orchestration lives in `main.py` (114 lines)
   and `run_code.py` (161 lines) at the repo root, wiring the planner, interpreter, and
   policies into a runnable pipeline. Ikarus's equivalent is `ikarus/cli.py`.

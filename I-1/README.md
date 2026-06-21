@@ -16,8 +16,19 @@ python -m ikarus --scene all --scenario email --mock
 ```
 
 - Scene 1: injection hidden in the inbox never enters the plan.
-- Scene 2: an untrusted recipient is BLOCKED at the sink.
+- Scene 2: a sink call is BLOCKED because an argument is untrusted.
 - Scene 3: a naive single-LLM agent gets hijacked and exfiltrates.
+
+Security model is **deny-by-default**: the interpreter blocks a sink if *any*
+argument is UNTRUSTED — so the email body / shared-doc CONTENT is protected, not
+just the recipient.
+
+## Architecture (SOLID seams)
+
+A `SecurityPolicy` strategy (`DenyUntrustedArgsPolicy`) decides what to gate; an
+`EmailSink` interface (`MockEmailSink`/`ResendEmailSink`, plus an allowlist
+DECORATOR) abstracts delivery; and a `Source` abstraction (`InboxSource`/`PdfSource`)
+is dispatched by the plan step.
 
 ## Run against LM Studio (hybrid live mode)
 
@@ -46,10 +57,12 @@ note) if it is invalid — it never crashes.
 
 Sends are mock by default. Set `IKARUS_SINK=resend` to send real mail via
 [Resend](https://resend.com) — secret via `RESEND_API_KEY`, sender via `IKARUS_EMAIL_FROM`.
+The Resend factory validates configuration: if `IKARUS_SINK=resend` but `RESEND_API_KEY`
+or `IKARUS_EMAIL_FROM` is missing, it errors clearly.
 
 Hard safety backstop: the real sink only sends to addresses listed in
-`IKARUS_ALLOWED_RECIPIENTS` (comma-separated). An empty list or an off-list address is
-refused (recorded, never crashes). `share_doc` stays mock.
+`IKARUS_ALLOWED_RECIPIENTS` (comma-separated, normalized case/space-insensitively). An
+empty list or an off-list address is refused (recorded, never crashes). `share_doc` stays mock.
 
 Scenario addresses are env-overridable so a live demo reaches your own inbox:
 `IKARUS_TRUSTED_RECIPIENT`, `IKARUS_ATTACKER_ADDR`.

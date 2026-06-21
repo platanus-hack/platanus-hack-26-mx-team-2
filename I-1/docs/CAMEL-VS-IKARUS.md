@@ -11,23 +11,23 @@ copy from the reference repo — the comparison below is read-only research, not
 
 | Real CaMeL component | File | Lines | Ikarus equivalent | What's simplified |
 |---|---|---|---|---|
-| AST-walking interpreter for a restricted Python subset | `src/camel/interpreter/interpreter.py` | 2716 | `ikarus/interpreter.py` (~138 lines; also validates the model's plan before execution via `validate_plan()`, with an injectable sink map) | Linear executor over an ordered plan (A1); no sandboxed Python, no conditionals/loops |
+| AST-walking interpreter for a restricted Python subset | `src/camel/interpreter/interpreter.py` | 2716 | `ikarus/interpreter.py` (~171 lines; also validates the model's plan via `validate_plan()` — including the rule that rejects a literal/inline recipient — and dispatches sources/sinks) | Linear executor over an ordered plan (A1); no sandboxed Python, no conditionals/loops |
 | Value / capability system (control-flow taint lives here) | `src/camel/interpreter/value.py` | 1460 | `ikarus/labels.py` (~30 lines) | Data-flow taint only — no control-flow taint; gap named explicitly by the stub `ikarus/policy.py:propagate_control_flow_taint` |
 | Quarantined (extractor) LLM | `src/camel/quarantined_llm.py` | 103 | `ikarus/q_llm.py` | Faithful in spirit: narrow extractor, output born UNTRUSTED by construction |
 | Privileged (planner) LLM | `src/camel/pipeline_elements/privileged_llm.py` | 483 | `ikarus/p_llm.py` (~50 lines) | Plan emission only, plus hybrid live/mock/fallback path; no general tool-call retry machinery |
-| General policy engine | `src/camel/security_policy.py` | 110 | `ikarus/policy.py` (~37 lines) | Single hard-wired rule (TRUSTED recipient required for `send_email`/`share_doc`); no policy DSL |
+| General policy engine | `src/camel/security_policy.py` | 110 | `ikarus/policy.py` (~59 lines) | One fixed deny-by-default policy: `DenyUntrustedArgsPolicy` (a `SecurityPolicy` strategy) blocks a sink if ANY argument is UNTRUSTED, so content is gated like the recipient; no policy DSL |
 | Per-domain policies — banking | `src/camel/pipeline_elements/security_policies/banking.py` | 122 | *(none)* | Not modeled; Ikarus has one domain (email/pdf), not banking |
 | Per-domain policies — slack | `src/camel/pipeline_elements/security_policies/slack.py` | 99 | *(none)* | Not modeled |
 | Per-domain policies — travel | `src/camel/pipeline_elements/security_policies/travel.py` | 150 | *(none)* | Not modeled |
 | Per-domain policies — workspace | `src/camel/pipeline_elements/security_policies/workspace.py` | 270 | *(none)* | Not modeled |
 | Top-level orchestration | `main.py` + `run_code.py` (repo root) | 114 + 161 | `ikarus/cli.py` | Three fixed scenes/scenarios instead of a general runnable pipeline |
-| Side-effect tools (sinks) | mocked AgentDojo tools | — | `ikarus/tools/email_sink.py` (~95 lines) | Swappable `mock`\|`Resend` email sink gated by a recipient allowlist; mock by default. The real Resend path is an Ikarus-specific addition (not part of CaMeL), kept safe by the allowlist |
+| Side-effect tools (sinks) | mocked AgentDojo tools | — | `ikarus/tools/email_sink.py` (~95 lines) | Swappable `mock`\|`Resend` email sink, gated by a recipient allowlist via the `AllowlistEmailSink` decorator; mock by default. The real Resend path is an Ikarus-specific addition (not part of CaMeL), kept safe by the allowlist |
 
 ## Best honest talking points for judges
 
 - **The interpreter gap is the whole story in two numbers.** Real CaMeL's interpreter
   is 2716 lines of AST-node handling for a restricted Python subset; Ikarus's is a
-  ~70-line loop over an ordered plan. We didn't shrink the architecture — we picked a
+  ~171-line linear executor over an ordered plan. We didn't shrink the architecture — we picked a
   much smaller execution model (structured plan, not sandboxed code) and that choice is
   what makes the rest of the simplification possible.
 - **`value.py` (1460 lines) is exactly where our stub admits the gap.** Real CaMeL's
@@ -38,6 +38,10 @@ copy from the reference repo — the comparison below is read-only research, not
   inspired.** Its shape — extract-only, output born untrusted regardless of content —
   is the same shape as Ikarus's `ikarus/q_llm.py`. That's the part of the design we
   ported in spirit, and it's the part doing the real security work in our demo.
+- **Deny-by-default gates content, not just the recipient.** `DenyUntrustedArgsPolicy`
+  blocks a sink if ANY argument is UNTRUSTED, so the email body / shared-doc content is
+  contained exactly like the recipient — untrusted data cannot slip out through an
+  unguarded argument.
 - **Containment is demonstrated against a real side effect, not just a mock.** Ikarus
   can now optionally send REAL email behind a deterministic recipient allowlist, while
   the security guarantee — a taint-gated sink — is still enforced by the deterministic
