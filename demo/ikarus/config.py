@@ -39,8 +39,39 @@ class Settings:
     openai_api_key: str = field(default="", repr=False)
     anthropic_api_key: str = field(default="", repr=False)
 
-def _int_env(name: str, default: int) -> int:
-    raw = os.environ.get(name)
+def _read_dotenv(path: str) -> dict[str, str]:
+    """Parse a minimal KEY=VALUE .env file (comments, blanks, and quotes handled).
+
+    Pure and side-effect-free; a missing/unreadable file yields {}. This is the
+    stand-in for python-dotenv so a local `.env` (IKARUS_SINK=resend + key +
+    allowlist) actually takes effect — no extra dependency."""
+    values: dict[str, str] = {}
+    try:
+        with open(path, encoding="utf-8") as fh:
+            lines = fh.readlines()
+    except OSError:
+        return values
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        key = key.strip()
+        if key:
+            values[key] = val.strip().strip('"').strip("'")
+    return values
+
+
+def _env() -> dict[str, str]:
+    """Effective config: a local `.env` as fallback, real environment wins.
+
+    Never mutates os.environ, so an explicit `export` (or a test's monkeypatch)
+    always takes precedence over the file. Path overridable via IKARUS_ENV_FILE."""
+    path = os.environ.get("IKARUS_ENV_FILE", ".env")
+    return {**_read_dotenv(path), **os.environ}
+
+def _int_env(env: dict, name: str, default: int) -> int:
+    raw = env.get(name)
     if raw is None:
         return default
     try:
@@ -49,20 +80,21 @@ def _int_env(name: str, default: int) -> int:
         raise ValueError(f"env var {name}={raw!r} must be an integer") from exc
 
 def load_settings() -> Settings:
+    env = _env()
     return Settings(
-        base_url=os.environ.get("IKARUS_BASE_URL", DEFAULT_BASE_URL),
-        model=os.environ.get("IKARUS_MODEL", DEFAULT_MODEL),
-        api_key=os.environ.get("IKARUS_API_KEY", DEFAULT_API_KEY),
-        max_tokens=_int_env("IKARUS_MAX_TOKENS", DEFAULT_MAX_TOKENS),
-        reasoning_max_tokens=_int_env("IKARUS_REASONING_MAX_TOKENS", DEFAULT_REASONING_MAX_TOKENS),
-        sink=os.environ.get("IKARUS_SINK", DEFAULT_SINK),
-        resend_api_key=os.environ.get("RESEND_API_KEY", ""),
-        email_from=os.environ.get("IKARUS_EMAIL_FROM", ""),
-        allowed_recipients=_parse_recipients(os.environ.get("IKARUS_ALLOWED_RECIPIENTS", "")),
-        llm_provider=os.environ.get("IKARUS_LLM_PROVIDER", DEFAULT_LLM_PROVIDER),
-        chat_model=os.environ.get("IKARUS_CHAT_MODEL", ""),
-        openai_api_key=os.environ.get("IKARUS_OPENAI_API_KEY", ""),
-        anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
+        base_url=env.get("IKARUS_BASE_URL", DEFAULT_BASE_URL),
+        model=env.get("IKARUS_MODEL", DEFAULT_MODEL),
+        api_key=env.get("IKARUS_API_KEY", DEFAULT_API_KEY),
+        max_tokens=_int_env(env, "IKARUS_MAX_TOKENS", DEFAULT_MAX_TOKENS),
+        reasoning_max_tokens=_int_env(env, "IKARUS_REASONING_MAX_TOKENS", DEFAULT_REASONING_MAX_TOKENS),
+        sink=env.get("IKARUS_SINK", DEFAULT_SINK),
+        resend_api_key=env.get("RESEND_API_KEY", ""),
+        email_from=env.get("IKARUS_EMAIL_FROM", ""),
+        allowed_recipients=_parse_recipients(env.get("IKARUS_ALLOWED_RECIPIENTS", "")),
+        llm_provider=env.get("IKARUS_LLM_PROVIDER", DEFAULT_LLM_PROVIDER),
+        chat_model=env.get("IKARUS_CHAT_MODEL", ""),
+        openai_api_key=env.get("IKARUS_OPENAI_API_KEY", ""),
+        anthropic_api_key=env.get("ANTHROPIC_API_KEY", ""),
     )
 
 def _parse_recipients(raw: str) -> tuple[str, ...]:

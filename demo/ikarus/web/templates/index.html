@@ -100,6 +100,24 @@
           Con modelos locales tarda unos segundos; usa uno ágil (p. ej. <code>gemma-3-12b</code>,
           <code>gpt-oss-20b</code>) — los de razonamiento son lentos.</span>
       </div>
+      <form class="upload-run" hx-post="/flow/upload" hx-target="#live-result"
+            hx-swap="innerHTML" hx-encoding="multipart/form-data" hx-disabled-elt="button">
+        <label class="upload-field">Sube tu propio documento (PDF o .txt) con una instrucción escondida
+          <input type="file" name="file" accept=".pdf,.txt" required>
+        </label>
+        <label class="upload-field">Petición confiable
+          <input name="user_request" value="Resume este documento y compártelo con mi equipo."
+                 autocomplete="off">
+        </label>
+        <input type="hidden" name="trusted_recipient" value="team@corp.com">
+        <button class="flow-btn" type="submit">
+          <span class="label-idle">Subir y ejecutar en vivo ▶</span>
+          <span class="label-busy">Leyendo documento…</span>
+        </button>
+        <span class="hint">El documento es la <strong>fuente no confiable</strong>: se extrae su
+          texto y se corre el mismo flujo en vivo. Con un modelo conectado, el agente ingenuo
+          obedece la instrucción escondida en TU archivo — y el guardia lo bloquea.</span>
+      </form>
       <div id="live-result" aria-live="polite"></div>
 
       <div class="send-test">

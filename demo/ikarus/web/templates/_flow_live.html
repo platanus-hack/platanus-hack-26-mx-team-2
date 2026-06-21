@@ -5,7 +5,7 @@
   {% if provider == 'mock' %}
   <p class="live-mock-note">⚠ Estás en <code>mock</code> (sin modelo real): lo de abajo es
     salida simulada determinista. Para ver <strong>generación real + logs de un LLM</strong>,
-    inicia LM Studio (se autodetecta) o elige un proveedor en la sección Chat.</p>
+    inicia LM Studio (se autodetecta) o elige un proveedor en la barra de arriba.</p>
   {% endif %}
   <p class="live-trace-head">Ejecución <strong>en vivo</strong> · provider: <code>{{ provider }}</code>
     {% if provider != 'mock' %}— salidas reales de los modelos, paso a paso.{% endif %}</p>

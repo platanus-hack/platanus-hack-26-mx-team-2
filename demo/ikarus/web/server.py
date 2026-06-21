@@ -7,7 +7,7 @@ same UI works offline by default and against a real model when configured.
 import dataclasses
 import json
 from pathlib import Path
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -17,12 +17,12 @@ from ikarus.config import load_settings
 from ikarus.naive_agent import extract_injected_address
 from ikarus.scenarios import build_scenario, default_scenarios
 from ikarus.tools.email_sink import MockEmailSink, make_email_sink, SinkError
+from ikarus.uploads import UploadError, extract_upload_text
 from ikarus.web.live_flow import live_extract, live_guard, live_naive, live_plan
 from ikarus.web.views import scene_view
 
 _DIR = Path(__file__).parent
 _SCENES = (1, 2, 3)
-_FALLBACK_ATTACKER = "attacker@example.com"
 _PROVIDERS = ("mock", "lmstudio", "openai", "claude")
 
 # Runtime provider override set from the UI. In-memory only (never persisted to
@@ -58,11 +58,14 @@ def autodetect_provider() -> str:
     return "mock"
 
 
-def _provider_ctx(status: str = "", status_class: str = "", oob: bool = False) -> dict:
+def _provider_ctx(status: str = "", status_class: str = "", oob: bool = False,
+                  settings=None) -> dict:
     """Template context for the provider picker. The key value is NEVER sent —
     only whether one is configured for the selected provider. `oob` adds an
-    out-of-band swap so the chat's provider chip updates on Conectar."""
-    s = _effective_settings()
+    out-of-band swap so the chat's provider chip updates on Conectar. Pass
+    `settings` to preview an attempted (not-yet-committed) provider on a failed
+    Conectar, so the user keeps their selection to retry."""
+    s = settings or _effective_settings()
     p = s.llm_provider if s.llm_provider in _PROVIDERS else "mock"
     key_set = (bool(s.openai_api_key) if p == "openai"
                else bool(s.anthropic_api_key) if p == "claude" else False)
@@ -130,23 +133,30 @@ def create_app() -> FastAPI:
     def set_provider(request: Request, provider: str = Form("mock"),
                      model: str = Form(""), api_key: str = Form("")):
         provider = provider if provider in _PROVIDERS else "mock"
-        _RUNTIME["llm_provider"] = provider
+        # Build a CANDIDATE override and validate it BEFORE committing to the
+        # process-global _RUNTIME. A missing/invalid key must not poison the live
+        # flow + chat for the whole process — on failure we keep the prior runtime.
+        candidate = dict(_RUNTIME)
+        candidate["llm_provider"] = provider
         if model.strip():
-            _RUNTIME["chat_model"] = model.strip()
+            candidate["chat_model"] = model.strip()
         else:
-            _RUNTIME.pop("chat_model", None)  # fall back to per-provider default
+            candidate.pop("chat_model", None)  # fall back to per-provider default
         key = api_key.strip()
         if provider == "openai" and key:
-            _RUNTIME["openai_api_key"] = key
+            candidate["openai_api_key"] = key
         if provider == "claude" and key:
-            _RUNTIME["anthropic_api_key"] = key
+            candidate["anthropic_api_key"] = key
         try:  # fail fast: a missing key surfaces here, not at first message
-            make_chat_provider(_effective_settings())
-            status, cls = f"Conectado a {provider}.", "ok"
-        except ValueError as exc:
-            status, cls = str(exc), "err"
+            make_chat_provider(dataclasses.replace(load_settings(), **candidate))
+        except ValueError as exc:  # do NOT commit; show the attempt + error to retry
+            preview = dataclasses.replace(load_settings(), **candidate)
+            return templates.TemplateResponse(request, "_provider.html",
+                _provider_ctx(str(exc), "err", oob=True, settings=preview))
+        _RUNTIME.clear()
+        _RUNTIME.update(candidate)
         return templates.TemplateResponse(request, "_provider.html",
-                                          _provider_ctx(status, cls, oob=True))
+            _provider_ctx(f"Conectado a {provider}.", "ok", oob=True))
 
     @api.post("/chat", response_class=HTMLResponse)
     def chat(request: Request, message: str = Form(""), history: str = Form("[]")):
@@ -212,6 +222,29 @@ def create_app() -> FastAPI:
         step = live_guard((addr or "").strip()[:200])
         return templates.TemplateResponse(request, "_flow_step.html", {"s": step})
 
+    @api.post("/flow/upload", response_class=HTMLResponse)  # real PDF/txt, end-to-end
+    async def flow_upload(request: Request, file: UploadFile = File(...),
+                          user_request: str = Form(...),
+                          trusted_recipient: str = Form("team@corp.com")):
+        # The uploaded document is the UNTRUSTED source: extract its text, then run
+        # the SAME live walk on it — naive agent (real model when connected) gets
+        # hijacked by the hidden instruction, Ikarus blocks the tainted share_doc.
+        try:
+            text = extract_upload_text(await file.read(), file.filename or "")
+        except UploadError as exc:
+            return _live_error(request, exc)
+        settings = _effective_settings()
+        sc = {"request": user_request, "inbox_text": text,
+              "trusted_recipient": trusted_recipient}
+        try:
+            steps = [live_naive(settings, sc), live_plan(settings, sc)]
+            ext_step, extracted = live_extract(settings, sc)
+            steps += [ext_step, live_guard(extracted, tool="share_doc", arg="recipient")]
+        except (ChatError, ValueError) as exc:
+            return _live_error(request, exc)
+        return templates.TemplateResponse(request, "_flow_live.html", {
+            "steps": steps, "provider": settings.llm_provider, "scenario": "upload"})
+
     @api.post("/send-test", response_class=HTMLResponse)
     def send_test(request: Request):
         # Real delivery is OPT-IN and one email per click. Independent of the
@@ -219,8 +252,9 @@ def create_app() -> FastAPI:
         s = load_settings()
         if s.sink != "resend":
             return templates.TemplateResponse(request, "_send_result.html", {
-                "status": ("Modo mock: no se envió nada. Para un envío real define "
-                           "IKARUS_SINK=resend + RESEND_API_KEY + allowlist."),
+                "status": ("Modo mock: no se envió nada. Para un envío real crea un "
+                           ".env (copia .env.example) con IKARUS_SINK=resend + "
+                           "RESEND_API_KEY + IKARUS_ALLOWED_RECIPIENTS y reinicia el servidor."),
                 "cls": "warn"})
         to = s.allowed_recipients[0] if s.allowed_recipients else (s.email_from or "")
         try:
@@ -237,7 +271,10 @@ def create_app() -> FastAPI:
     def sandbox(request: Request,
                 user_request: str = Form(...), body: str = Form(...),
                 trusted_recipient: str = Form(...), inbox_text: str = Form(...)):
-        attacker = extract_injected_address(inbox_text) or _FALLBACK_ATTACKER
+        # No fabricated fallback: when the inbox has no injected address, the
+        # scenario stays clean (Scene 2 ALLOWED, naive SAFE) instead of always
+        # reporting BLOCKED on a benign inbox.
+        attacker = extract_injected_address(inbox_text)
         scenario = build_scenario(
             name="custom", request=user_request, body=body,
             trusted_recipient=trusted_recipient, attacker_address=attacker,

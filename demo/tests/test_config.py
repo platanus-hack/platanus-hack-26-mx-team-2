@@ -52,3 +52,41 @@ def test_allowed_recipients_parsed_from_env(monkeypatch):
     assert s.resend_api_key == "re_x"
     assert s.email_from == "onboarding@resend.dev"
     assert s.allowed_recipients == ("me@corp.com", "me+spam@corp.com")
+
+
+def test_read_dotenv_parses_keys_comments_and_quotes(tmp_path):
+    from ikarus.config import _read_dotenv
+    p = tmp_path / ".env"
+    p.write_text('# a comment\nIKARUS_SINK=resend\nRESEND_API_KEY="re_secret"\n\n'
+                 "no_equals_line\nIKARUS_EMAIL_FROM='demo@x.com'\n")
+    d = _read_dotenv(str(p))
+    assert d["IKARUS_SINK"] == "resend"
+    assert d["RESEND_API_KEY"] == "re_secret"      # quotes stripped
+    assert d["IKARUS_EMAIL_FROM"] == "demo@x.com"
+    assert "no_equals_line" not in d
+
+
+def test_read_dotenv_missing_file_is_empty():
+    from ikarus.config import _read_dotenv
+    assert _read_dotenv("/no/such/.env") == {}
+
+
+def test_load_settings_reads_dotenv_file(tmp_path, monkeypatch):
+    env = tmp_path / "demo.env"
+    env.write_text("IKARUS_SINK=resend\nIKARUS_EMAIL_FROM=demo@x.com\n"
+                   "IKARUS_ALLOWED_RECIPIENTS=me@x.com\n")
+    monkeypatch.setenv("IKARUS_ENV_FILE", str(env))
+    monkeypatch.delenv("IKARUS_SINK", raising=False)
+    monkeypatch.delenv("IKARUS_EMAIL_FROM", raising=False)
+    s = load_settings()
+    assert s.sink == "resend"                       # picked up from the .env file
+    assert s.email_from == "demo@x.com"
+    assert s.allowed_recipients == ("me@x.com",)
+
+
+def test_explicit_env_wins_over_dotenv(tmp_path, monkeypatch):
+    env = tmp_path / "demo.env"
+    env.write_text("IKARUS_SINK=resend\n")
+    monkeypatch.setenv("IKARUS_ENV_FILE", str(env))
+    monkeypatch.setenv("IKARUS_SINK", "mock")        # explicit shell env must win
+    assert load_settings().sink == "mock"

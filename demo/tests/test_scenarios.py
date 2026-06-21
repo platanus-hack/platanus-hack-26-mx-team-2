@@ -91,6 +91,18 @@ def test_build_scenario_tainted_plan_routes_recipient_from_step():
     sink = [st for st in s.tainted_plan.steps if st.kind == "sink"][0]
     assert sink.args["to"].from_ == "step"
 
+def test_build_scenario_without_injection_keeps_scene2_recipient_trusted():
+    # No injected address → Scene 2 must NOT route the recipient through quarantine
+    # (that would BLOCK regardless of input). It runs the canonical plan instead, so
+    # the recipient stays the trusted request value and the sink is ALLOWED.
+    s = build_scenario(name="c", request="r", body="b",
+                       trusted_recipient="me@corp.com",
+                       attacker_address=None, inbox_text="From Bob: thanks!")
+    sink = [st for st in s.tainted_plan.steps if st.kind == "sink"][0]
+    assert sink.args["to"].from_ == "request"
+    assert all(st.kind != "extract" for st in s.tainted_plan.steps)
+    assert s.q_mock_value == ""
+
 
 # --- End-to-end canonical verdicts for both scenarios ---
 

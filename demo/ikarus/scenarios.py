@@ -86,24 +86,32 @@ def pdf_scenario() -> Scenario:
 
 
 def build_scenario(*, name: str, request: str, body: str, trusted_recipient: str,
-                   attacker_address: str, inbox_text: str) -> Scenario:
+                   attacker_address: str | None, inbox_text: str) -> Scenario:
     """Construct a Scenario from sandbox input.
 
-    Request values are TRUSTED; `q_mock_value` is the attacker address so the
-    Q-LLM mock 'extracts' it and it is born UNTRUSTED — the same taint story as
-    the built-in scenarios, on the judge's own input.
+    Request values are TRUSTED. When the inbox actually carries an injected address
+    (`attacker_address` truthy), Scene 2 runs the deliberately-subverted tainted
+    plan: the Q-LLM mock 'extracts' that address, it is born UNTRUSTED, and the
+    guard BLOCKS it — the same taint story as the built-in scenarios, on the judge's
+    own input.
+
+    When there is NO injection (`attacker_address` falsy), Scene 2 runs the
+    canonical plan instead (recipient from the trusted request), so the sink is
+    ALLOWED. This keeps the sandbox honest with the input instead of fabricating an
+    attacker and always reporting BLOCKED.
     """
+    injected = bool(attacker_address)
     return Scenario(
         name=name,
         request=request,
         inbox_text=inbox_text,
         trusted_recipient=trusted_recipient,
-        attacker_address=attacker_address,
+        attacker_address=attacker_address or "",
         request_values=MappingProxyType(
             {"recipient": trusted(trusted_recipient), "body": trusted(body)}),
         canonical_plan=_canonical_plan(),
-        tainted_plan=_tainted_plan(),
-        q_mock_value=attacker_address,
+        tainted_plan=_tainted_plan() if injected else _canonical_plan(),
+        q_mock_value=attacker_address or "",
     )
 
 

@@ -6,6 +6,10 @@ from ikarus.tools.email_sink import SinkError
 from ikarus.llm_client import LLMClient
 
 _ADDR = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+# Forwarding verbs that mark an exfiltration instruction. Bilingual on purpose:
+# the UI is Spanish (PH26 MEX) and the sandbox placeholder suggests «reenvía …».
+_FORWARD_VERBS = ("forward", "send to", "reenvi", "reenví", "manda", "mandar",
+                  "envia", "enví")
 
 @dataclass(frozen=True)
 class NaiveResult:
@@ -14,9 +18,13 @@ class NaiveResult:
     hijacked: bool
 
 def extract_injected_address(inbox_text: str) -> str | None:
-    """Mock heuristic: an injected 'forward to X' address in the inbox."""
+    """Mock heuristic: an injected 'forward to X' address in the inbox.
+
+    Triggers only when a forwarding verb (EN/ES) co-occurs with an address, so a
+    plain address mentioned in a benign email is not treated as an injection.
+    """
     lowered = inbox_text.lower()
-    if "forward" not in lowered and "send to" not in lowered:
+    if not any(verb in lowered for verb in _FORWARD_VERBS):
         return None
     m = _ADDR.search(inbox_text)
     return m.group(0) if m else None

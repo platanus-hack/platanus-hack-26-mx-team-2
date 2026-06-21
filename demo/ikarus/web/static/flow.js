@@ -88,7 +88,10 @@
     var wrap = article.querySelector('.ledger-wrap');
     article.insertBefore(this.strip, wrap);
     article.insertBefore(controls, wrap);
-    this.showFinal();  // default: static summary (all rows visible, outcome shown)
+    // Default: start at the first phase (like the live walk) so rows are revealed
+    // step by step, not all shown at once. "Reiniciar" jumps to the full summary.
+    if (reduceMotion) { this.showFinal(); }
+    else { this.reset(); this.advance(); }
   }
 
   Flow.prototype.clearStages = function () {
