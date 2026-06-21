@@ -23,3 +23,5 @@ Task 6: complete (commits 300bf27..d9fd320, implemented; review pending)
   Task 6 review: clean (Minors: broad except, no input validation — plan-mandated)
 Task 7: complete (commits 5c49468..75a3224, review clean)
   - Minor: LLMError fallback branch untested (structurally identical, shared return); no Extraction schema validation of returned dict
+Task 8: complete (commits 4c75349..8f3332a, review clean)
+  - Minor: build_catalog hardcodes tool names (plan-mandated); note embeds exc string
