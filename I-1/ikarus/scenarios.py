@@ -1,5 +1,7 @@
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 from ikarus.labels import Tainted, trusted
 from ikarus.schemas import Plan, PlanStep, ArgRef
 
@@ -23,7 +25,7 @@ class Scenario:
     inbox_text: str
     trusted_recipient: str
     attacker_address: str
-    request_values: dict
+    request_values: Mapping[str, Tainted]
     canonical_plan: Plan
     tainted_plan: Plan
     q_mock_value: str
@@ -56,7 +58,8 @@ def email_scenario() -> Scenario:
         inbox_text=inbox,
         trusted_recipient=recipient,
         attacker_address=attacker,
-        request_values={"recipient": trusted(recipient), "body": trusted("Q3 figures: revenue up 12%.")},
+        request_values=MappingProxyType(
+            {"recipient": trusted(recipient), "body": trusted("Q3 figures: revenue up 12%.")}),
         canonical_plan=_canonical_plan(),
         tainted_plan=_tainted_plan(),
         q_mock_value=attacker,
@@ -74,7 +77,8 @@ def pdf_scenario() -> Scenario:
         inbox_text=pdf,
         trusted_recipient=recipient,
         attacker_address=attacker,
-        request_values={"recipient": trusted(recipient), "body": trusted("Summary: revenue up 12%.")},
+        request_values=MappingProxyType(
+            {"recipient": trusted(recipient), "body": trusted("Summary: revenue up 12%.")}),
         canonical_plan=_canonical_plan(),
         tainted_plan=_tainted_plan(),
         q_mock_value=attacker,

@@ -22,9 +22,9 @@ class TraceEvent:
 
 @dataclass(frozen=True)
 class ExecutionResult:
-    events: list[TraceEvent]
+    events: tuple[TraceEvent, ...]
     blocked: bool
-    executed_sinks: list[str]
+    executed_sinks: tuple[str, ...]
 
 def validate_plan(plan: Plan, registry: ToolRegistry,
                   request_values: dict[str, Tainted],
@@ -135,4 +135,4 @@ def run(plan: Plan, request_values: dict[str, Tainted], inbox_text: str,
                         decision=Decision(False, str(exc))))
             else:
                 blocked = True
-    return ExecutionResult(events, blocked, executed)
+    return ExecutionResult(tuple(events), blocked, tuple(executed))

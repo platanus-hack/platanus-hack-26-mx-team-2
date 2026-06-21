@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 DEFAULT_BASE_URL = "http://localhost:1234/v1"
 DEFAULT_MODEL = "qwen3.5-35b-a3b"
@@ -22,11 +22,11 @@ DEFAULT_SINK = "mock"  # "mock" | "resend"; mock never sends a real email.
 class Settings:
     base_url: str
     model: str
-    api_key: str
+    api_key: str = field(repr=False)  # may carry a real provider key; keep out of repr/logs
     max_tokens: int = DEFAULT_MAX_TOKENS
     reasoning_max_tokens: int = DEFAULT_REASONING_MAX_TOKENS
     sink: str = DEFAULT_SINK
-    resend_api_key: str = ""
+    resend_api_key: str = field(default="", repr=False)  # secret — never in repr/logs
     email_from: str = ""
     # Hard backstop: a real sink only sends to addresses on this allowlist.
     allowed_recipients: tuple[str, ...] = ()
@@ -52,4 +52,5 @@ def load_settings() -> Settings:
     )
 
 def _parse_recipients(raw: str) -> tuple[str, ...]:
-    return tuple(addr.strip() for addr in raw.split(",") if addr.strip())
+    # Normalize (trim + lowercase) so the allowlist match is case/space-insensitive.
+    return tuple(addr.strip().lower() for addr in raw.split(",") if addr.strip())

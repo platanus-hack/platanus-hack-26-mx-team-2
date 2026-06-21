@@ -50,7 +50,9 @@ class ResendEmailSink:
     def send(self, to: str, body: str) -> str:
         if not self._allowed:
             raise SinkBlocked("refusing to send: no IKARUS_ALLOWED_RECIPIENTS set")
-        if to not in self._allowed:
+        # Normalize the recipient the same way the allowlist is normalized
+        # (trim + lowercase) so casing/whitespace cannot bypass the gate.
+        if to.strip().lower() not in self._allowed:
             raise SinkBlocked(f"refusing to send: {to!r} is not in the allowlist")
         try:
             self._post(
