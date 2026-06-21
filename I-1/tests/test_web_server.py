@@ -116,3 +116,17 @@ def test_chat_with_unconfigured_claude_surfaces_error_not_500():
     r = client.post("/chat", data={"message": "hi", "history": "[]"})
     assert r.status_code == 200
     assert "[error]" in r.text
+
+
+def test_flow_live_returns_three_real_layers_and_block():
+    r = client.post("/flow/live")                 # default provider = mock (offline)
+    assert r.status_code == 200
+    assert "P-LLM" in r.text and "Q-LLM" in r.text and "Guardia" in r.text
+    assert "BLOCK" in r.text and "determinista" in r.text
+
+
+def test_flow_live_with_unconfigured_claude_shows_error_not_500():
+    server._RUNTIME["llm_provider"] = "claude"    # no key set
+    r = client.post("/flow/live")
+    assert r.status_code == 200
+    assert "[error]" in r.text and "ANTHROPIC_API_KEY" in r.text

@@ -71,6 +71,18 @@
       <h2>Demo guiado</h2>
       <p class="hint">Tres escenas sobre el escenario de correo integrado. Las escenas 1–2
         son Ikarus (contenido); la escena 3 es un agente ingenuo de un solo LLM (secuestrado).</p>
+
+      <div class="live-run">
+        <button class="flow-btn" type="button" hx-post="/flow/live"
+                hx-target="#live-result" hx-swap="innerHTML" hx-disabled-elt="this">
+          <span class="label-idle">Ejecutar en vivo ▶</span>
+          <span class="label-busy">Ejecutando modelos…</span>
+        </button>
+        <span class="hint">Corre P-LLM y Q-LLM <strong>reales</strong> (según el proveedor de la
+          sección Chat) + guardia determinista. Sin proveedor real es <code>mock</code>.</span>
+      </div>
+      <div id="live-result" aria-live="polite"></div>
+
       <div id="scenes" aria-live="polite">
         {% include "_scenes.html" %}
       </div>

@@ -1,0 +1,22 @@
+{% if error %}
+  <p class="live-error">[error] {{ error }} — revisa el proveedor configurado en la sección Chat.</p>
+{% else %}
+  <div class="live-trace">
+    <p class="live-trace-head">Ejecución <strong>en vivo</strong> · provider: <code>{{ provider }}</code>
+      — salidas reales de los modelos, paso a paso.</p>
+    {% for s in steps %}
+    <article class="live-step {{ s.kind }}" style="animation-delay:{{ loop.index0 * 0.45 }}s">
+      <div class="live-step-head">
+        <span class="flow-tag">Capa {{ s.stage }}</span>
+        <strong class="live-layer">{{ s.layer }}</strong>
+        <span class="live-model">{{ s.model }}</span>
+        {% if s.trust %}<span class="tt untrusted">{{ s.trust }}</span>{% endif %}
+        {% if s.decision %}<span class="badge {{ 'danger' if s.decision == 'BLOCK' else 'ok' }}">{{ s.decision }}</span>{% endif %}
+      </div>
+      <p class="live-title">{{ s.title }}</p>
+      <pre class="live-detail">{{ s.detail }}</pre>
+      <p class="live-note">{{ s.note }}</p>
+    </article>
+    {% endfor %}
+  </div>
+{% endif %}

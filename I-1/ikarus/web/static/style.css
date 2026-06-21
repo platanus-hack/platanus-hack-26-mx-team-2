@@ -145,6 +145,34 @@ h1,h2,h3{text-wrap:balance}
 .badge.ok{color:var(--ok); background:var(--ok-bg); border-color:var(--ok-line)}
 .badge.danger{color:var(--danger); background:var(--danger-bg); border-color:var(--danger-line)}
 
+/* ---- Live run (real models, step-by-step) ------------------------------ */
+.live-run{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 4px}
+.live-run button .label-busy{display:none}
+.live-run button.htmx-request .label-idle{display:none}
+.live-run button.htmx-request .label-busy{display:inline}
+.live-run button.htmx-request{opacity:.8}
+#live-result:empty{display:none}
+.live-trace{margin:14px 0 6px; display:flex; flex-direction:column; gap:12px}
+.live-trace-head{margin:0; color:var(--muted); font-size:13px}
+.live-trace-head code{color:var(--brand)}
+.live-step{padding:14px 16px; border:1px solid var(--line); border-left:3px solid var(--brand);
+  border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow);
+  animation:rise .4s both}
+.live-step.guard{border-left-color:var(--muted)}
+.live-step-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.live-layer{font-size:14px}
+.live-model{font-family:var(--mono); font-size:11px; color:var(--brand);
+  border:1px solid var(--brand-dim); background:var(--brand-bg); padding:2px 8px; border-radius:999px}
+.live-step.guard .live-model{color:var(--muted); border-color:var(--line); background:var(--surface-2)}
+.live-title{margin:8px 0 6px; font-size:13.5px; color:var(--muted)}
+.live-detail{margin:0; font-family:var(--mono); font-size:12.5px; line-height:1.5;
+  white-space:pre-wrap; word-break:break-word; background:var(--bg); color:var(--ink);
+  border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 12px}
+.live-note{margin:8px 0 0; font-size:12px; color:var(--muted)}
+.live-error{margin:14px 0 0; padding:11px 14px; border-radius:var(--radius-sm);
+  color:var(--danger); background:var(--danger-bg); border:1px solid var(--danger-line);
+  font-family:var(--mono); font-size:12.5px}
+
 /* ---- Agent-flow strip (per scene, built by flow.js) -------------------- */
 .flow-strip{display:flex; align-items:stretch; gap:8px; margin:14px 0 0}
 .flow-stage{flex:1; position:relative; display:flex; flex-direction:column; gap:3px;
@@ -311,4 +339,5 @@ button:active{transform:translateY(1px)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms !important; animation-iteration-count:1 !important;
     transition-duration:.001ms !important; scroll-behavior:auto !important}
+  .live-step{animation-delay:0ms !important}  /* don't hide staggered steps */
 }
