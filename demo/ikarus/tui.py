@@ -23,8 +23,8 @@ class TraceRenderer:
     def render(self, result: ExecutionResult) -> str:
         console = Console(record=True, width=self._width, file=io.StringIO())
         table = Table(title="Ikarus — Taint Ledger")
-        table.add_column("Step"); table.add_column("Kind")
-        table.add_column("Detail"); table.add_column("Trust"); table.add_column("Policy")
+        for col in ("Step", "Kind", "Detail", "Trust", "Policy"):
+            table.add_column(col)
         for e in result.events:
             trust = ""
             if e.tainted is not None:
@@ -38,8 +38,13 @@ class TraceRenderer:
             table.add_row(e.step_id, e.kind, e.detail, trust, policy)
         console.print(table)
         verdict = self.verdict_line(result)
-        style = "bold red" if result.blocked else "bold green"
-        console.print(Panel(f"VERDICT: {verdict}", style=style))
+        if result.blocked:
+            mark, style = "✗", "bold red"
+        else:
+            mark, style = "✓", "bold green"
+        # Fitted panel (expand=False) so the verdict reads as a tight badge, not a
+        # full-width box that dwarfs the one line inside it.
+        console.print(Panel(f"{mark} VERDICT: {verdict}", style=style, expand=False))
         return console.export_text()
 
 
