@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Mapping, Protocol, runtime_checkable
 from ikarus.labels import Tainted, Trust
 from ikarus.tools.registry import ToolRegistry
 
@@ -9,23 +10,44 @@ class Decision:
     reason: str
 
 
-def check(tool: str, args: dict[str, Tainted], registry: ToolRegistry) -> Decision:
-    """Wired policy: a sink's sensitive args must be TRUSTED, else BLOCK.
+@runtime_checkable
+class SecurityPolicy(Protocol):
+    """A strategy that decides whether a sink call is allowed."""
 
-    This is a hard-wired policy, not a general capability language (see HONESTY.md).
+    def evaluate(self, tool: str, args: Mapping[str, Tainted],
+                 registry: ToolRegistry) -> Decision: ...
+
+
+class DenyUntrustedArgsPolicy:
+    """Deny-by-default: a sink is blocked if ANY of its arguments is UNTRUSTED.
+
+    This protects content (e.g. an email body / shared doc) just like the
+    recipient — not only a hand-picked 'sensitive' subset — so untrusted data
+    cannot be exfiltrated through an unguarded argument. Containment, not
+    detection: decided deterministically, regardless of the value.
     """
-    spec = registry.get(tool)
-    for arg_name in spec.sensitive_args:
-        tainted = args.get(arg_name)
-        if tainted is None:
-            return Decision(False, f"missing sensitive arg '{arg_name}' for {tool}")
-        if tainted.provenance.trust == Trust.UNTRUSTED:
-            return Decision(
-                False,
-                f"BLOCKED: sensitive arg '{arg_name}' of {tool} is UNTRUSTED "
-                f"(provenance: {tainted.provenance.source})",
-            )
-    return Decision(True, f"allowed: {tool} sensitive args are TRUSTED")
+
+    def evaluate(self, tool: str, args: Mapping[str, Tainted],
+                 registry: ToolRegistry) -> Decision:
+        registry.get(tool)  # raises KeyError for unknown tools (caller guards)
+        for name, tainted in args.items():
+            if tainted is None:
+                return Decision(False, f"missing arg '{name}' for {tool}")
+            if tainted.provenance.trust == Trust.UNTRUSTED:
+                return Decision(
+                    False,
+                    f"BLOCKED: sensitive arg '{name}' of {tool} is UNTRUSTED "
+                    f"(provenance: {tainted.provenance.source})",
+                )
+        return Decision(True, f"allowed: all args of {tool} are TRUSTED")
+
+
+_DEFAULT_POLICY = DenyUntrustedArgsPolicy()
+
+
+def check(tool: str, args: Mapping[str, Tainted], registry: ToolRegistry) -> Decision:
+    """Backward-compatible entry point using the default deny-by-default policy."""
+    return _DEFAULT_POLICY.evaluate(tool, args, registry)
 
 
 def propagate_control_flow_taint(*_args, **_kwargs):

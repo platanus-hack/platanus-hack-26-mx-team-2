@@ -66,6 +66,24 @@ def validate_plan(plan: Plan, registry: ToolRegistry,
                 for extra in sorted(provided - set(params)):
                     errors.append(f"step '{step.id}' sink '{step.tool}' "
                                   f"has unexpected arg '{extra}'")
+                # Recipient args must come from the request (by ref) or an
+                # extraction step — never a hardcoded literal/inline value, which
+                # would be born TRUSTED and bypass the taint gate. from="step" is
+                # allowed so the runtime policy can still block an untrusted one.
+                try:
+                    recipient_args = registry.get(step.tool).sensitive_args
+                except KeyError:
+                    recipient_args = ()
+                for rname in recipient_args:
+                    rarg = step.args.get(rname)
+                    if rarg is None:
+                        continue
+                    if rarg.from_ == "literal":
+                        errors.append(f"step '{step.id}' recipient arg '{rname}' uses a "
+                                      "literal value (must come from the request)")
+                    elif rarg.from_ == "request" and rarg.ref is None:
+                        errors.append(f"step '{step.id}' recipient arg '{rname}' uses an "
+                                      "inline request value (must use a ref)")
         for name, arg in step.args.items():
             if arg.from_ == "step" and arg.ref not in seen:
                 errors.append(f"step '{step.id}' arg '{name}' references "
@@ -76,7 +94,9 @@ def validate_plan(plan: Plan, registry: ToolRegistry,
                               f"unknown request value '{arg.ref}'")
             elif arg.from_ == "literal" and arg.value is None:
                 errors.append(f"step '{step.id}' arg '{name}' is a literal with no value")
-        seen.add(step.id)
+        # Only record real ids, so an empty id can't satisfy a later ref.
+        if step.id:
+            seen.add(step.id)
     return errors
 
 def _resolve(arg: ArgRef, env: dict[str, Tainted], request_values: dict[str, Tainted]) -> Tainted:

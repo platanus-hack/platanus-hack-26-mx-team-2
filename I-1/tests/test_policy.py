@@ -1,5 +1,8 @@
 import pytest
-from ikarus.policy import check, Decision, propagate_control_flow_taint
+from ikarus.policy import (
+    check, Decision, SecurityPolicy, DenyUntrustedArgsPolicy,
+    propagate_control_flow_taint,
+)
 from ikarus.tools.registry import default_registry
 from ikarus.labels import trusted, untrusted
 
@@ -17,12 +20,24 @@ def test_untrusted_recipient_blocked():
     assert "untrusted" in d.reason.lower()
     assert "to" in d.reason
 
-def test_untrusted_body_does_not_block_send():
-    # Only sensitive args (the recipient) gate send_email.
+def test_untrusted_body_blocks_send():
+    # Deny-by-default: ANY untrusted arg blocks the sink — content (body) is
+    # protected too, not just the recipient. (Closes the content-exfil gap.)
     reg = default_registry()
     d = check("send_email", {"to": trusted("bob@corp.com"),
                              "body": untrusted("leaked", "inbox")}, reg)
-    assert d.allowed is True
+    assert d.allowed is False
+    assert "body" in d.reason
+
+def test_deny_policy_is_a_security_policy():
+    policy = DenyUntrustedArgsPolicy()
+    assert isinstance(policy, SecurityPolicy)  # structural (Protocol) conformance
+    reg = default_registry()
+    assert policy.evaluate(
+        "send_email", {"to": trusted("bob@corp.com"), "body": trusted("hi")}, reg).allowed
+    assert not policy.evaluate(
+        "share_doc", {"recipient": trusted("team@corp.com"),
+                      "doc": untrusted("secret", "inbox")}, reg).allowed
 
 def test_control_flow_taint_is_stub():
     with pytest.raises(NotImplementedError):

@@ -31,6 +31,44 @@ def test_untrusted_recipient_from_extraction_is_blocked():
     assert "send_email" not in res.executed_sinks
     assert any(e.decision and not e.decision.allowed for e in res.events)
 
+def test_validate_plan_rejects_literal_recipient():
+    # A hardcoded recipient literal bypasses taint (born TRUSTED) — reject it.
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "literal", "value": "attacker@evil.com"}),
+        "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    errors = validate_plan(plan, default_registry(), _req())
+    assert any("to" in e and "literal" in e for e in errors)
+
+def test_validate_plan_rejects_inline_request_recipient():
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "request", "value": "attacker@evil.com"}),
+        "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    assert validate_plan(plan, default_registry(), _req()) != []
+
+def test_validate_plan_allows_step_recipient_for_runtime_block():
+    # Scene 2's tainted plan routes the recipient from an extraction step; it must
+    # PASS validation so the runtime taint policy can demonstrate the block.
+    plan = Plan(steps=[
+        PlanStep(id="s1", kind="source", tool="read_inbox", args={}),
+        PlanStep(id="s2", kind="extract", query="recipient", input_ref="s1", args={}),
+        PlanStep(id="s3", kind="sink", tool="send_email", args={
+            "to": ArgRef(**{"from": "step", "ref": "s2"}),
+            "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    assert validate_plan(plan, default_registry(), _req()) == []
+
+def test_untrusted_body_is_blocked_at_runtime():
+    # Deny-by-default end to end: untrusted content in body blocks the send.
+    plan = Plan(steps=[
+        PlanStep(id="s1", kind="source", tool="read_inbox", args={}),
+        PlanStep(id="s2", kind="extract", query="x", input_ref="s1", args={}),
+        PlanStep(id="s3", kind="sink", tool="send_email", args={
+            "to": ArgRef(**{"from": "request", "ref": "recipient"}),
+            "body": ArgRef(**{"from": "step", "ref": "s2"})})])
+    res = run(plan, _req(), inbox_text="data", registry=default_registry(),
+              mock=True, q_mock_value="leaked")
+    assert res.blocked is True
+    assert "send_email" not in res.executed_sinks
+
 def test_unknown_request_ref_raises_clear_value_error():
     plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
         "to": ArgRef(**{"from": "request", "ref": "missing"}),
