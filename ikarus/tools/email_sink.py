@@ -13,7 +13,11 @@ RESEND_ENDPOINT = "https://api.resend.com/emails"
 _SUBJECT = "Ikarus demo"
 
 
-class SinkBlocked(Exception):
+class SinkError(Exception):
+    """A real send could not complete (refused by allowlist, or transport failure)."""
+
+
+class SinkBlocked(SinkError):
     """Raised when a real send is refused (empty allowlist or recipient off it)."""
 
 
@@ -48,12 +52,15 @@ class ResendEmailSink:
             raise SinkBlocked("refusing to send: no IKARUS_ALLOWED_RECIPIENTS set")
         if to not in self._allowed:
             raise SinkBlocked(f"refusing to send: {to!r} is not in the allowlist")
-        self._post(
-            RESEND_ENDPOINT,
-            {"Authorization": f"Bearer {self._api_key}",
-             "Content-Type": "application/json"},
-            {"from": self._sender, "to": [to], "subject": _SUBJECT, "text": body},
-        )
+        try:
+            self._post(
+                RESEND_ENDPOINT,
+                {"Authorization": f"Bearer {self._api_key}",
+                 "Content-Type": "application/json"},
+                {"from": self._sender, "to": [to], "subject": _SUBJECT, "text": body},
+            )
+        except Exception as exc:  # network / API failure — don't crash the demo
+            raise SinkError(f"send failed: {exc}") from exc
         return f"[RESEND send_email] to={to} body={body!r}"
 
 

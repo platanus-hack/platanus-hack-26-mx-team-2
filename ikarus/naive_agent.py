@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass
 from typing import Callable, Optional
 from ikarus.tools.sinks import send_email
-from ikarus.tools.email_sink import SinkBlocked
+from ikarus.tools.email_sink import SinkError
 from ikarus.llm_client import LLMClient, LLMError
 
 _ADDR = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
@@ -35,7 +35,7 @@ def run(request: str, inbox_text: str, trusted_recipient: str,
     recipient = injected if injected else trusted_recipient
     try:
         log = send(recipient, body=f"(naive agent acting on: {request})")
-    except SinkBlocked as exc:
+    except SinkError as exc:
         log = f"BLOCKED: {exc}"
     return NaiveResult(recipient=recipient, sink_log=log,
                        hijacked=recipient != trusted_recipient)

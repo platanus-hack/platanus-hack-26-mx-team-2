@@ -7,7 +7,7 @@ from ikarus.policy import check, Decision
 from ikarus.tools.registry import ToolRegistry
 from ikarus.tools.sources import read_inbox
 from ikarus.tools.sinks import send_email, share_doc
-from ikarus.tools.email_sink import SinkBlocked
+from ikarus.tools.email_sink import SinkError
 from ikarus.q_llm import extract
 
 _SINK_FUNCS = {"send_email": send_email, "share_doc": share_doc}
@@ -126,9 +126,9 @@ def run(plan: Plan, request_values: dict[str, Tainted], inbox_text: str,
                 try:
                     funcs[step.tool](**{k: v.value for k, v in args.items()})
                     executed.append(step.tool)
-                except SinkBlocked as exc:
-                    # Real sink's own allowlist refused this recipient — record it
-                    # as a block instead of crashing the run.
+                except SinkError as exc:
+                    # Real sink refused (allowlist) or failed (network/API) —
+                    # record it as a block instead of crashing the run.
                     blocked = True
                     events.append(TraceEvent(
                         step.id, "sink", f"real sink refused: {exc}",

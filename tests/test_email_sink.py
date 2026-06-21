@@ -1,7 +1,7 @@
 import pytest
 from ikarus.config import Settings
 from ikarus.tools.email_sink import (
-    MockEmailSink, ResendEmailSink, SinkBlocked, make_email_sink,
+    MockEmailSink, ResendEmailSink, SinkBlocked, SinkError, make_email_sink,
 )
 
 def _settings(**kw):
@@ -46,3 +46,12 @@ def test_resend_sends_to_allowlisted_recipient():
     assert sent["payload"]["to"] == ["me@corp.com"]
     assert sent["payload"]["from"] == "from@b.com"
     assert sent["headers"]["Authorization"] == "Bearer re_x"
+
+def test_resend_wraps_transport_error_as_sinkerror():
+    def boom(*a, **k): raise RuntimeError("bad api key / network down")
+    sink = ResendEmailSink("re_x", "from@b.com", ("me@corp.com",), _post=boom)
+    with pytest.raises(SinkError):
+        sink.send("me@corp.com", "hello")
+
+def test_sinkblocked_is_a_sinkerror():
+    assert issubclass(SinkBlocked, SinkError)
