@@ -19,3 +19,4 @@ Task 4: complete (commits 6adfbb7..8bebe17, review clean)
   - Minor: unknown-tool-lookup path untested; fluent register() return unused
 Task 5: complete (commits 43f5efb..f90acc6, review clean)
   - Minor: missing-arg + unknown-tool branches untested (defensive paths beyond brief)
+Task 6: complete (commits 300bf27..d9fd320, implemented; review pending)
