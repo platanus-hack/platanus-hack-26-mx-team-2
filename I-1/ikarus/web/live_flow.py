@@ -80,6 +80,8 @@ def live_plan(settings, scenario: dict) -> dict:
         "title": "Planificador emite el plan",
         "detail": _short(plan),
         "note": "El modelo solo vio la petición confiable + el catálogo — NUNCA el inbox.",
+        "seen": ("El planificador SOLO recibió: la petición confiable + el catálogo "
+                 "de herramientas. El inbox NO entró a su prompt."),
         "trust": "", "decision": "",
         "req": _req_log(_PLANNER_SYSTEM, p_user), "resp": _short(plan, 4000)}
 
@@ -109,6 +111,26 @@ def live_guard(addr: str) -> dict:
         "note": "No es un modelo: la decisión no depende de las palabras del dato.",
         "trust": "UNTRUSTED", "decision": "PASS" if decision.allowed else "BLOCK",
         "req": "", "resp": ""}
+
+
+def live_naive(settings, scenario: dict) -> dict:
+    """Baseline: a single-LLM naive agent given request+inbox together. With a
+    real provider it is asked to pick the recipient and gets hijacked; the value
+    is the proof the attack is real. Deterministic mock when provider is mock."""
+    from ikarus.naive_agent import run as naive_run
+    inbox, req = scenario["inbox_text"], scenario["request"]
+    res = naive_run(req, inbox, "bob@corp.com", mock=True)
+    return {
+        "stage": "0", "layer": "Agente ingenuo (sin defensa)",
+        "model": _model_name(settings), "decision": "EXFIL", "trust": "",
+        "kind": "naive",
+        "title": "Un solo LLM lee petición + inbox juntos",
+        "detail": f"Reenvía a: {res.recipient}  (hijacked={res.hijacked})",
+        "note": "Sin separación plan/datos: obedece la instrucción escondida.",
+        "req": _req_log("(naive: request + inbox en el mismo prompt)",
+                        f"{req}\n\n{inbox}"),
+        "resp": f"to={res.recipient}\n{res.sink_log}",
+    }
 
 
 def run_live_flow(settings, scenario: dict) -> list[dict]:

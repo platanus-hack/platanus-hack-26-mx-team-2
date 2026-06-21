@@ -194,6 +194,8 @@ h1,h2,h3{text-wrap:balance}
   border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow);
   animation:rise .4s both}
 .live-step.guard{border-left-color:var(--muted)}
+.live-step.naive{border-color:#7f1d1d; background:rgba(127,29,29,.10)}
+.live-step.naive .live-model{color:#fca5a5; border-color:#7f1d1d; background:rgba(127,29,29,.20)}
 .live-step-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
 .live-layer{font-size:14px}
 .live-model{font-family:var(--mono); font-size:11px; color:var(--brand);
@@ -313,6 +315,27 @@ button{
 }
 button:hover{background:#ff8534}
 button:active{transform:translateY(1px)}
+
+/* ---- Provider bar (global control at top of demo panel) --------------- */
+.provider-bar{margin:0 0 18px; padding:12px 14px; border:1px solid var(--line);
+  border-radius:var(--radius-sm); background:var(--surface-2)}
+.provider-bar .bar-label{margin:0 0 8px; font-family:var(--mono); font-size:11px;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--brand)}
+
+/* ---- Scenario picker + real-send result + planner-seen proof ---------- */
+.scenario-pick{gap:5px; font-size:12.5px; color:var(--muted)}
+#scenario-select{background:var(--bg); color:var(--ink); border:1px solid var(--line);
+  border-radius:var(--radius-sm); padding:9px 11px; font:400 14px var(--sans);
+  color-scheme:dark; cursor:pointer; touch-action:manipulation;
+  transition:border-color var(--t), box-shadow var(--t)}
+#scenario-select:focus-visible{outline:none; border-color:var(--brand);
+  box-shadow:0 0 0 3px var(--brand-bg)}
+.send-test{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 18px}
+.send-result{font-family:var(--mono); font-size:12.5px}
+.send-result.ok{color:var(--ok)}
+.send-result.err{color:var(--danger)}
+.send-result.warn{color:var(--brand)}
+.planner-seen{margin:6px 0 0; font-size:12.5px; color:var(--muted)}
 
 /* ---- Provider picker --------------------------------------------------- */
 .provider-form{max-width:680px; margin:0 0 18px; padding:16px; border:1px solid var(--line);

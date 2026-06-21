@@ -168,3 +168,23 @@ def test_flow_live_with_unconfigured_claude_shows_error_not_500():
     r = client.post("/flow/live")
     assert r.status_code == 200
     assert "[error]" in r.text and "ANTHROPIC_API_KEY" in r.text
+
+
+def test_provider_picker_sits_above_the_live_run():
+    r = client.get("/")
+    html = r.text
+    # The model/provider control must come BEFORE the live-run button, not at the bottom.
+    assert html.index('name="provider"') < html.index("Ejecutar en vivo")
+
+
+def test_live_flow_accepts_pdf_scenario():
+    r = client.post("/flow/live", data={"scenario": "pdf"})
+    assert r.status_code == 200
+    assert "Summarize this PDF" in r.text  # pdf-specific request text proves the scenario flowed through
+
+
+def test_send_test_is_mock_safe_by_default():
+    # With no resend config (clean test env) it must NOT send and must not crash.
+    r = client.post("/send-test")
+    assert r.status_code == 200
+    assert "resend" in r.text.lower()  # tells the user how to enable real sends

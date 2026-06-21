@@ -16,8 +16,8 @@ from ikarus.composition import CompositionRoot
 from ikarus.config import load_settings
 from ikarus.naive_agent import extract_injected_address
 from ikarus.scenarios import build_scenario, default_scenarios
-from ikarus.tools.email_sink import MockEmailSink
-from ikarus.web.live_flow import live_extract, live_guard, live_plan
+from ikarus.tools.email_sink import MockEmailSink, make_email_sink, SinkError
+from ikarus.web.live_flow import live_extract, live_guard, live_naive, live_plan
 from ikarus.web.views import scene_view
 
 _DIR = Path(__file__).parent
@@ -173,37 +173,61 @@ def create_app() -> FastAPI:
             "log_req": log_req, "log_resp": log_resp,
         })
 
-    def _live_scenario() -> dict:
-        s = default_scenarios().create("email")
+    def _live_scenario(name: str = "email") -> dict:
+        n = name if name in default_scenarios() else "email"
+        s = default_scenarios().create(n)
         return {"request": s.request, "inbox_text": s.inbox_text}
 
     def _live_error(request: Request, exc) -> HTMLResponse:
         return templates.TemplateResponse(request, "_flow_error.html", {"error": str(exc)})
 
     @api.post("/flow/live", response_class=HTMLResponse)  # step 1 — P-LLM
-    def flow_live(request: Request):
+    def flow_live(request: Request, scenario: str = Form("email")):
         settings = _effective_settings()
         try:
-            step = live_plan(settings, _live_scenario())
+            naive = live_naive(settings, _live_scenario(scenario))
+            step = live_plan(settings, _live_scenario(scenario))
         except (ChatError, ValueError) as exc:
             return _live_error(request, exc)
         return templates.TemplateResponse(request, "_flow_live.html", {
-            "step": step, "provider": settings.llm_provider})
+            "naive": naive, "step": step,
+            "provider": settings.llm_provider, "scenario": scenario})
 
     @api.post("/flow/live/extract", response_class=HTMLResponse)  # step 2 — Q-LLM
-    def flow_live_extract(request: Request):
+    def flow_live_extract(request: Request, scenario: str = Form("email")):
         settings = _effective_settings()
         try:
-            step, extracted = live_extract(settings, _live_scenario())
+            step, extracted = live_extract(settings, _live_scenario(scenario))
         except (ChatError, ValueError) as exc:
             return _live_error(request, exc)
         return templates.TemplateResponse(request, "_flow_extract.html", {
-            "step": step, "extracted": extracted})
+            "step": step, "extracted": extracted, "scenario": scenario})
 
     @api.post("/flow/live/guard", response_class=HTMLResponse)  # step 3 — guard (deterministic)
     def flow_live_guard(request: Request, addr: str = Form("")):
         step = live_guard((addr or "").strip()[:200])
         return templates.TemplateResponse(request, "_flow_step.html", {"s": step})
+
+    @api.post("/send-test", response_class=HTMLResponse)
+    def send_test(request: Request):
+        # Real delivery is OPT-IN and one email per click. Independent of the
+        # mock 3-scene display. Only sends when IKARUS_SINK=resend is configured.
+        s = load_settings()
+        if s.sink != "resend":
+            return templates.TemplateResponse(request, "_send_result.html", {
+                "status": ("Modo mock: no se envió nada. Para un envío real define "
+                           "IKARUS_SINK=resend + RESEND_API_KEY + allowlist."),
+                "cls": "warn"})
+        to = s.allowed_recipients[0] if s.allowed_recipients else (s.email_from or "")
+        try:
+            log = make_email_sink(s).send(to, body="Ikarus: correo de prueba (1).")
+            status, cls = f"Enviado a {to}: {log}", "ok"
+        except SinkError as exc:
+            status, cls = f"Rechazado: {exc}", "err"
+        except Exception as exc:  # transport/config — never crash the page
+            status, cls = f"Error: {exc}", "err"
+        return templates.TemplateResponse(request, "_send_result.html",
+                                          {"status": status, "cls": cls})
 
     @api.post("/sandbox", response_class=HTMLResponse)
     def sandbox(request: Request,

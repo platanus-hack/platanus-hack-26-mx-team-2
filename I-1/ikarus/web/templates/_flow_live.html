@@ -7,9 +7,10 @@
   {% endif %}
   <p class="live-trace-head">Ejecución <strong>en vivo</strong> · provider: <code>{{ provider }}</code>
     {% if provider != 'mock' %}— salidas reales de los modelos, paso a paso.{% endif %}</p>
+  {% if naive %}<div class="baseline">{% with s = naive %}{% include "_flow_step.html" %}{% endwith %}</div>{% endif %}
   {% with s = step %}{% include "_flow_step.html" %}{% endwith %}
   <form class="live-pending" hx-post="/flow/live/extract" hx-trigger="load"
-        hx-target="this" hx-swap="outerHTML">
+        hx-target="this" hx-swap="outerHTML" hx-vals='{"scenario": "{{ scenario }}"}'>
     <span class="live-spinner" aria-hidden="true"></span> Q-LLM ejecutando…
   </form>
 </div>
