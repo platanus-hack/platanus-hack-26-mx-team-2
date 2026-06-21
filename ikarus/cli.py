@@ -7,6 +7,8 @@ from ikarus.tui import render_trace
 from ikarus.p_llm import plan as plan_request, build_catalog
 from ikarus.llm_client import LLMClient
 from ikarus.config import load_settings
+from ikarus.tools.email_sink import make_email_sink
+from ikarus.tools.sinks import share_doc
 
 def _select_plan(scene, scenario, registry, mock, client):
     """Scene 1: hybrid live wiring — real P-LLM emits the plan in live mode.
@@ -31,16 +33,22 @@ def _select_plan(scene, scenario, registry, mock, client):
 def run_scene(scene: int, scenario_name: str, mock: bool = True, client=None) -> dict:
     scenario = SCENARIOS[scenario_name]()
     registry = default_registry()
+    # The email sink is mock by default; with IKARUS_SINK=resend it sends real
+    # mail (allowlist-gated). share_doc stays mock — no real document sharing.
+    email_sink = make_email_sink(load_settings())
+    sinks = {"send_email": email_sink.send, "share_doc": share_doc}
     if scene == 3:
         res = run_naive(scenario.request, scenario.inbox_text,
-                        scenario.trusted_recipient, mock=mock)
+                        scenario.trusted_recipient, mock=mock,
+                        email_send=email_sink.send)
         text = (f"NAIVE AGENT sent to: {res.recipient}  "
                 f"(hijacked={res.hijacked})\n{res.sink_log}")
         return {"text": text, "blocked": False, "executed_sinks": [],
                 "used_fallback": False, "naive_recipient": res.recipient}
     plan, used_fallback = _select_plan(scene, scenario, registry, mock, client)
     result = run_plan(plan, scenario.request_values, scenario.inbox_text,
-                      registry, mock=mock, q_mock_value=scenario.q_mock_value)
+                      registry, mock=mock, q_mock_value=scenario.q_mock_value,
+                      sinks=sinks)
     return {"text": render_trace(result), "blocked": result.blocked,
             "executed_sinks": result.executed_sinks, "used_fallback": used_fallback,
             "naive_recipient": None}

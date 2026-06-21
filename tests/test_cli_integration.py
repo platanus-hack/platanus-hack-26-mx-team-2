@@ -32,6 +32,24 @@ def test_scene1_live_falls_back_on_invalid_plan():
     assert out["blocked"] is False
     assert "send_email" in out["executed_sinks"]
 
+def test_run_scene_routes_send_through_configured_sink(monkeypatch):
+    sent = []
+    class Spy:
+        def send(self, to, body): sent.append(to); return f"[SPY] to={to}"
+    monkeypatch.setattr("ikarus.cli.make_email_sink", lambda settings: Spy())
+    out = run_scene(1, "email", mock=True)
+    assert sent == ["bob@corp.com"]
+    assert "send_email" in out["executed_sinks"]
+
+def test_run_scene3_naive_routes_through_configured_sink(monkeypatch):
+    sent = []
+    class Spy:
+        def send(self, to, body): sent.append(to); return f"[SPY] to={to}"
+    monkeypatch.setattr("ikarus.cli.make_email_sink", lambda settings: Spy())
+    out = run_scene(3, "email", mock=True)
+    assert sent == ["attacker@evil.com"]
+    assert out["naive_recipient"] == "attacker@evil.com"
+
 def test_scene2_taint_blocks_sink():
     out = run_scene(2, "email", mock=True)
     assert out["blocked"] is True

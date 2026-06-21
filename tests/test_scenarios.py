@@ -22,3 +22,14 @@ def test_tainted_plan_recipient_comes_from_step():
 def test_registry_of_scenarios():
     assert set(SCENARIOS) == {"email", "pdf"}
     assert pdf_scenario().attacker_address in pdf_scenario().inbox_text
+
+
+def test_addresses_overridable_for_real_sends(monkeypatch):
+    # So a live demo delivers to the operator's own inbox, not bob@corp.com.
+    monkeypatch.setenv("IKARUS_TRUSTED_RECIPIENT", "me@gmail.com")
+    monkeypatch.setenv("IKARUS_ATTACKER_ADDR", "me+attacker@gmail.com")
+    s = email_scenario()
+    assert s.trusted_recipient == "me@gmail.com"
+    assert s.request_values["recipient"].value == "me@gmail.com"
+    assert s.attacker_address == "me+attacker@gmail.com"
+    assert "me+attacker@gmail.com" in s.inbox_text
