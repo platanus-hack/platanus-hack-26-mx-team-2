@@ -1,4 +1,4 @@
-from ikarus.tui import render_trace, verdict_line
+from ikarus.tui import render_trace, verdict_line, TraceRenderer
 from ikarus.interpreter import ExecutionResult, TraceEvent
 from ikarus.policy import Decision
 from ikarus.labels import untrusted, trusted
@@ -34,3 +34,13 @@ def test_render_allowed_shows_trusted_and_allowed_verdict():
 
 def test_verdict_line_allowed():
     assert verdict_line(_allowed_result()) == "ALLOWED"
+
+# --- TraceRenderer: OOP seam the app injects ---
+
+def test_trace_renderer_renders_block():
+    text = TraceRenderer().render(_blocked_result())
+    assert "BLOCKED" in text and "UNTRUSTED" in text
+    assert "Taint Ledger" in text
+
+def test_trace_renderer_verdict_line():
+    assert TraceRenderer().verdict_line(_allowed_result()) == "ALLOWED"
