@@ -102,6 +102,12 @@
       </div>
       <div id="live-result" aria-live="polite"></div>
 
+      <div class="send-test">
+        <button type="button" hx-post="/send-test" hx-target="#send-result"
+                hx-swap="innerHTML" hx-disabled-elt="this">Enviar 1 correo real de prueba</button>
+        <span id="send-result" aria-live="polite"></span>
+      </div>
+
       <div id="scenes" aria-live="polite">
         {% include "_scenes.html" %}
       </div>

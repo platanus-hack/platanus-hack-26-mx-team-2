@@ -16,7 +16,7 @@ from ikarus.composition import CompositionRoot
 from ikarus.config import load_settings
 from ikarus.naive_agent import extract_injected_address
 from ikarus.scenarios import build_scenario, default_scenarios
-from ikarus.tools.email_sink import MockEmailSink
+from ikarus.tools.email_sink import MockEmailSink, make_email_sink, SinkError
 from ikarus.web.live_flow import live_extract, live_guard, live_naive, live_plan
 from ikarus.web.views import scene_view
 
@@ -207,6 +207,27 @@ def create_app() -> FastAPI:
     def flow_live_guard(request: Request, addr: str = Form("")):
         step = live_guard((addr or "").strip()[:200])
         return templates.TemplateResponse(request, "_flow_step.html", {"s": step})
+
+    @api.post("/send-test", response_class=HTMLResponse)
+    def send_test(request: Request):
+        # Real delivery is OPT-IN and one email per click. Independent of the
+        # mock 3-scene display. Only sends when IKARUS_SINK=resend is configured.
+        s = load_settings()
+        if s.sink != "resend":
+            return templates.TemplateResponse(request, "_send_result.html", {
+                "status": ("Modo mock: no se envió nada. Para un envío real define "
+                           "IKARUS_SINK=resend + RESEND_API_KEY + allowlist."),
+                "cls": "warn"})
+        to = s.allowed_recipients[0] if s.allowed_recipients else (s.email_from or "")
+        try:
+            log = make_email_sink(s).send(to, body="Ikarus: correo de prueba (1).")
+            status, cls = f"Enviado a {to}: {log}", "ok"
+        except SinkError as exc:
+            status, cls = f"Rechazado: {exc}", "err"
+        except Exception as exc:  # transport/config — never crash the page
+            status, cls = f"Error: {exc}", "err"
+        return templates.TemplateResponse(request, "_send_result.html",
+                                          {"status": status, "cls": cls})
 
     @api.post("/sandbox", response_class=HTMLResponse)
     def sandbox(request: Request,
