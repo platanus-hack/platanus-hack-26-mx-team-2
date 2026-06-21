@@ -13,6 +13,23 @@
       El agente ingenuo envió a <code>{{ s.naive_recipient }}</code>
       — <strong>hijacked={{ s.hijacked }}</strong>
     </p>
+    {#
+      Leyenda de exfiltración. Solo cuando hubo secuestro: el destinatario es un
+      TERCERO (la dirección del atacante), distinto del usuario. La mostramos en modo
+      mock porque NO podemos demostrar la entrega real a un tercero: sin un dominio
+      verificado, el remitente sandbox de Resend solo entrega al correo dueño de la
+      cuenta (un "+atacante" no basta: Resend valida el destinatario como texto exacto
+      y lo rechaza con 403 antes de que Gmail enrute el "+"). Esta leyenda deja
+      explícito el punto que el envío real no puede hacer aquí: el dato salió HACIA OTRO.
+    #}
+    {% if s.hijacked %}
+    <p class="exfil-legend" role="note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 9v4M12 17h.01M10.3 3.9l-8 13.8A2 2 0 004 21h16a2 2 0 001.7-3.3l-8-13.8a2 2 0 00-3.4 0z"/></svg>
+      <span><strong>El dato salió hacia OTRO</strong> — exfiltración a un tercero, no a ti.</span>
+    </p>
+    {% endif %}
   {% else %}
     <div class="ledger-wrap">
       <table class="ledger">

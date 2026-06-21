@@ -28,8 +28,7 @@ paraphrase around any filter.
 
 Ikarus doesn't try to spot bad text. It makes the attack **structurally
 impossible to act on**, so the guarantee holds no matter what the malicious text
-says. Three layers, inspired by DeepMind's CaMeL (2025) — though Ikarus is a
-focused demo, not a reimplementation:
+says. Three layers, each with a single responsibility:
 
 1. **Planner (P-LLM)** sees ONLY your trusted request and the tool catalog — it
    *never* sees external data. An injection hidden in an email simply isn't in
@@ -64,5 +63,4 @@ property: a hijacked plan is blocked by construction, demonstrated live in under
 minute. The code is built on clean, swappable SOLID seams (policy strategy,
 sink/source abstractions, composition root) with 128 passing tests.
 
-Code, run instructions, and a full honesty doc (what we simplify vs. real CaMeL)
-live under `I-1/`.
+Code, run instructions, and a full honesty doc (what we simplify) live under `I-1/`.

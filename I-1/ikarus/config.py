@@ -11,6 +11,13 @@ DEFAULT_REASONING_MAX_TOKENS = 8192
 
 DEFAULT_SINK = "mock"  # "mock" | "resend"; mock never sends a real email.
 
+# Chat LLM provider — selects the swappable backend for the interactive chat.
+# "mock" (default, offline) | "lmstudio" | "openai" | "claude". This is the one
+# knob to change to move the demo between local and cloud models in production.
+DEFAULT_LLM_PROVIDER = "mock"
+DEFAULT_CLAUDE_MODEL = "claude-opus-4-8"
+DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+
 @dataclass(frozen=True)
 class Settings:
     base_url: str
@@ -23,6 +30,11 @@ class Settings:
     email_from: str = ""
     # Hard backstop: a real sink only sends to addresses on this allowlist.
     allowed_recipients: tuple[str, ...] = ()
+    # Chat provider selection + per-provider secrets/model (all secrets repr=False).
+    llm_provider: str = DEFAULT_LLM_PROVIDER
+    chat_model: str = ""  # empty → factory picks a per-provider default
+    openai_api_key: str = field(default="", repr=False)
+    anthropic_api_key: str = field(default="", repr=False)
 
 def _int_env(name: str, default: int) -> int:
     raw = os.environ.get(name)
@@ -44,6 +56,10 @@ def load_settings() -> Settings:
         resend_api_key=os.environ.get("RESEND_API_KEY", ""),
         email_from=os.environ.get("IKARUS_EMAIL_FROM", ""),
         allowed_recipients=_parse_recipients(os.environ.get("IKARUS_ALLOWED_RECIPIENTS", "")),
+        llm_provider=os.environ.get("IKARUS_LLM_PROVIDER", DEFAULT_LLM_PROVIDER),
+        chat_model=os.environ.get("IKARUS_CHAT_MODEL", ""),
+        openai_api_key=os.environ.get("IKARUS_OPENAI_API_KEY", ""),
+        anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
     )
 
 def _parse_recipients(raw: str) -> tuple[str, ...]:

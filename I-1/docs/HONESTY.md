@@ -1,7 +1,29 @@
 # Ikarus — Honest Simplifications vs. real CaMeL
 
-Ikarus approximates the CaMeL architecture (DeepMind, "Defeating Prompt Injections by
-Design", 2025). It does NOT reimplement it. What we simplified, explicitly:
+Ikarus is **inspired by** CaMeL (DeepMind, "Defeating Prompt Injections by Design",
+2025). It shares CaMeL's core insight — *separate the control flow from the data flow* so
+untrusted data can never change what the agent does — and the same shape of components
+(privileged planner / quarantined extractor / deterministic interpreter with taint-gated
+sinks). It is **not** CaMeL and does **not** reimplement it.
+
+## Inspired by CaMeL — but a different goal, not just a smaller copy
+
+Two distinctions matter, and only the first is a "simplification":
+
+1. **Scope (this demo is smaller).** What's built here is a focused Python proof-of-concept
+   of the three-layer core over one email scenario — see the explicit simplifications below.
+2. **Intent (the design is a different product).** CaMeL is a research defense evaluated on
+   the AgentDojo benchmark. Ikarus's design (see `docs/DOCUMENTO-MAESTRO.md`) is
+   **plug-and-play infrastructure**: an **MCP gateway** that aggregates the user's real MCPs
+   behind a single `run_task` surface, with a **user-configurable Quarantine** (model + key
+   in a UI), **declarative, UI-editable policies**, managed MCP credentials, and a
+   **data-flow trace viewer**. That product framing — deploy it in front of your own agent
+   and MCPs — is not what CaMeL is. It is **vision, not built** in this repo (the gateway,
+   the policy DSL, and the TypeScript product are design-only; see the README's Vision
+   section). So Ikarus is "inspired by CaMeL, aimed at a different place," not "CaMeL minus
+   features."
+
+## What we simplified (in this demo), explicitly
 
 1. **Structured plan, not a restricted Python interpreter.** The P-LLM emits an ordered
    list of steps (A1), not sandboxed Python. No conditionals/loops.

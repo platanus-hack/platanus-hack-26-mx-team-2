@@ -10,8 +10,9 @@
 (contención), no por detección**. Es para el hackathon de seguridad de IA **PH26 MEX** (la IA
 debe *causar* el daño / contenerlo, no solo detectarlo).
 
-Ikarus **se inspira en CaMeL** (DeepMind, "Defeating Prompt Injections by Design", 2025) pero
-**NO es CaMeL** ni lo reimplementa. La palabra "CaMeL" aparece solo como **cita académica**.
+La idea central: **separar el plan de los datos** y **etiquetar como UNTRUSTED** todo lo que se
+extrae de fuentes externas, de modo que un guardia determinista bloquee cualquier acción peligrosa
+con argumentos contaminados. La contención es **estructural**, no por detección de texto malicioso.
 
 ## Estructura del repo (Agile)
 
@@ -257,21 +258,18 @@ Aplicado un **design system de marca** sobre la UI existente (motor y tests inta
   `dev` para TestClient).
 
 ### Documentación
-- `README.md` — quickstart (inglés).
+- `docs/DOCUMENTO-MAESTRO.md` — **diseño/visión canónico** (gateway MCP, stack TS). El
+  sistema se **renombró de Lazarus → Ikarus**. Este repo implementa solo el **PoC del núcleo**
+  (3 capas en Python); el gateway/TS es visión, no construido.
+- `README.md` — quickstart (inglés). Ya incluye **modelo de amenaza** y sección **Visión**.
 - `docs/COMO-PROBAR.md` — **cómo probar el demo paso a paso (español)**.
-- `docs/HONESTY.md` — qué se simplifica vs CaMeL real (con citas de líneas reales).
-- `docs/CAMEL-VS-IKARUS.md` — tabla de mapeo real CaMeL → Ikarus.
+- `docs/HONESTY.md` — qué se simplifica en el demo (con citas de líneas reales).
+- `docs/CAMEL-VS-IKARUS.md` — tabla comparativa del enfoque (pendiente de actualizar).
 - `docs/superpowers/specs/2026-06-20-ikarus-design.md` — spec de diseño.
 - `docs/superpowers/plans/2026-06-20-ikarus.md` — plan de implementación (14 tareas).
 - `docs/superpowers/plans/2026-06-21-ikarus-web-ui.md` — plan de la UI web (6 tareas, **EJECUTADO**).
 - `AGENTS.md` (raíz del repo) — orientación para agentes/compañeros que retoman el repo.
 - `.superpowers/sdd/progress.md` — bitácora de ejecución tarea por tarea.
-
-### Repo de referencia (CaMeL real)
-Clonado en `../camel-reference/` (hermano de este proyecto), Apache-2.0. Núcleo:
-`src/camel/interpreter/interpreter.py` (2716 líneas), `interpreter/value.py` (1460),
-`quarantined_llm.py` (103), `pipeline_elements/privileged_llm.py` (483),
-`security_policy.py` (110). Leer para entender/robustecer, NO para correr (es AgentDojo).
 
 ## Pendientes / próximos pasos posibles
 

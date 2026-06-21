@@ -1,4 +1,5 @@
 """Ikarus — local demo containing indirect prompt injection by design.
 
-Approximates the CaMeL architecture (DeepMind, 2025). 'CaMeL' is cited, not the project name.
+Three-layer architecture (privileged planner / quarantined extractor /
+deterministic interpreter) that contains the attack by construction.
 """

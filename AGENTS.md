@@ -5,13 +5,20 @@ Read this first if you're an agent (or teammate) picking up this repo.
 ## What this repo is
 
 **Ikarus** — a local Python demo that **contains** indirect prompt injection *by
-design* (not by detection). Hackathon project, track 🛡️ AI Security. It is
-inspired by DeepMind's CaMeL but is **not** a reimplementation.
+design* (not by detection). Hackathon project, track 🛡️ AI Security. The
+containment is structural: separate the plan from the data and block any
+dangerous action whose arguments are tainted.
 
 One-line problem: an AI agent that reads untrusted data (inbox, PDF) can be
 hijacked by instructions hidden in that data. Ikarus separates planning from
 data, labels extracted data UNTRUSTED, and a deterministic interpreter blocks any
 dangerous action whose arguments are UNTRUSTED.
+
+**Vision vs. this repo.** The full design (`I-1/docs/DOCUMENTO-MAESTRO.md`, the system was
+renamed from *Lazarus* → *Ikarus*) is a plug-and-play **MCP gateway** product. **This repo
+is the Python PoC of the core** (the 3 layers over an email scenario) — the gateway, the
+policy DSL and the TS product are vision, not built. Don't describe the gateway as if it
+exists. CaMeL relationship: `I-1/docs/HONESTY.md` + `I-1/docs/CAMEL-VS-IKARUS.md`.
 
 ## Where the code lives
 
@@ -32,8 +39,8 @@ python3 -m pytest -q                                     # tests: expect 128 pas
 2. `I-1/docs/ESTADO-IKARUS.md` — **full handoff context** (decisions, file map,
    what's done, what's pending/stretch). The single source of truth for state.
 3. `I-1/docs/COMO-PROBAR.md` — step-by-step verification guide (Spanish).
-4. `I-1/docs/HONESTY.md` — what is simplified vs. real CaMeL (read before claiming
-   parity with CaMeL).
+4. `I-1/docs/HONESTY.md` — what is simplified in this demo (read before claiming
+   completeness).
 
 ## The one invariant — do not break it
 

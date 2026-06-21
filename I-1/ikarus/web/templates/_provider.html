@@ -1,0 +1,38 @@
+<form id="provider-form" class="provider-form" hx-post="/provider"
+      hx-target="#provider-form" hx-swap="outerHTML" hx-disabled-elt="button">
+  <div class="prov-grid">
+    <label class="prov-field">
+      <span>Proveedor</span>
+      <select name="provider" autocomplete="off">
+        <option value="mock"     {{ 'selected' if provider == 'mock' }}>mock · offline</option>
+        <option value="lmstudio" {{ 'selected' if provider == 'lmstudio' }}>LM Studio · local</option>
+        <option value="openai"   {{ 'selected' if provider == 'openai' }}>OpenAI</option>
+        <option value="claude"   {{ 'selected' if provider == 'claude' }}>Claude</option>
+      </select>
+    </label>
+
+    <label class="prov-field">
+      <span>Modelo <em>(opcional)</em></span>
+      <input name="model" value="{{ model }}" autocomplete="off" spellcheck="false"
+             placeholder="default del proveedor">
+    </label>
+
+    {% if needs_key %}
+    <label class="prov-field">
+      <span>API key {% if key_set %}<em class="ok-tag">✓ configurada</em>{% endif %}</span>
+      <input name="api_key" type="password" autocomplete="off" spellcheck="false"
+             placeholder="{{ 'pega una nueva para cambiarla' if key_set else 'requerida' }}">
+    </label>
+    {% endif %}
+  </div>
+
+  <div class="prov-actions">
+    <button type="submit">Conectar</button>
+    {% if status %}<span class="provider-status {{ status_class }}">{{ status }}</span>{% endif %}
+  </div>
+  <p class="hint">Solo en memoria del servidor (local) — la clave no se guarda en disco ni se muestra.</p>
+</form>
+{% if oob %}
+{# Out-of-band: keep the chat's provider chip in sync after Conectar. #}
+<span id="chat-provider-chip" class="chip brand" hx-swap-oob="true">provider: {{ provider }}</span>
+{% endif %}

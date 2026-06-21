@@ -51,7 +51,7 @@ def check(tool: str, args: Mapping[str, Tainted], registry: ToolRegistry) -> Dec
 
 
 def propagate_control_flow_taint(*_args, **_kwargs):
-    """STUB (B3): real CaMeL taints values that branch on untrusted data.
+    """STUB (B3): a fuller design would taint values that branch on untrusted data.
 
     Ikarus does data-flow taint only. This is exactly where control-flow taint
     propagation would hook in. Documented as a known simplification in HONESTY.md.
