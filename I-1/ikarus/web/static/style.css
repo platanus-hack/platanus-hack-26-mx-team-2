@@ -379,3 +379,49 @@ button:active{transform:translateY(1px)}
     transition-duration:.001ms !important; scroll-behavior:auto !important}
   .live-step{animation-delay:0ms !important}  /* don't hide staggered steps */
 }
+
+/* ===========================================================================
+   IMPACT LAYER — louder, more "alive" (appended last to win the cascade)
+   =========================================================================== */
+
+/* Hero: bigger tagline + a slow orange scan sweeping under the header. */
+.site-header{position:relative; overflow:hidden}
+.site-header::after{content:''; position:absolute; bottom:-1px; left:-40%; width:55%; height:2px;
+  background:linear-gradient(90deg,transparent,var(--brand),transparent);
+  filter:blur(.5px); animation:scan 6.5s linear infinite}
+@keyframes scan{0%{left:-55%} 100%{left:130%}}
+.tagline{font-size:21px; line-height:1.5; max-width:64ch}
+.tagline strong{color:var(--brand)}
+
+/* Louder, numbered section headers. */
+.wrap{counter-reset:panel}
+.panel{counter-increment:panel}
+.panel>h2{font-size:27px; letter-spacing:-.02em; display:flex; align-items:baseline; gap:12px}
+.panel>h2::before{content:counter(panel,decimal-leading-zero);
+  font-family:var(--mono); font-size:13px; font-weight:700; color:var(--brand);
+  background:var(--brand-bg); border:1px solid var(--brand-dim); border-radius:6px;
+  padding:2px 8px; transform:translateY(-4px); box-shadow:0 0 14px rgba(254,117,31,.18)}
+
+/* Cards: a hairline top sheen + a lift on hover (depth, not flatness). */
+.scene,.live-step,.pipeline{position:relative}
+.scene::after,.pipeline::after{content:''; position:absolute; inset:0 0 auto 0; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent);
+  border-radius:inherit; pointer-events:none}
+.scene:hover,.live-step:hover{transform:translateY(-2px); border-color:var(--brand-dim)}
+.scene.ok:hover{box-shadow:var(--shadow),0 0 28px rgba(34,197,94,.14)}
+.scene.danger:hover{box-shadow:var(--shadow),0 0 28px rgba(255,82,71,.16)}
+
+/* Glowing key signals — the things a judge should notice. */
+.badge.danger{box-shadow:0 0 18px rgba(255,82,71,.28)}
+.badge.ok{box-shadow:0 0 18px rgba(34,197,94,.22)}
+.verdict.block{box-shadow:inset 0 0 0 1px var(--danger-line),0 0 24px rgba(255,82,71,.18)}
+.verdict.pass{box-shadow:inset 0 0 0 1px var(--ok-line),0 0 24px rgba(34,197,94,.15)}
+.flow-btn,.prov-actions button,button[type=submit]{
+  box-shadow:0 0 0 1px rgba(254,117,31,.35),0 6px 20px rgba(254,117,31,.3)}
+.pipeline .layer.guard{box-shadow:0 0 0 1px var(--brand-dim) inset,0 0 30px rgba(254,117,31,.14)}
+
+/* Taint visibly flows down the blocked arrow. */
+.pipeline .arrow.blocked svg path{stroke-dasharray:5 5; animation:dash 1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-10}}
+
+@media (max-width:720px){ .panel>h2{font-size:21px} .tagline{font-size:17px} }
