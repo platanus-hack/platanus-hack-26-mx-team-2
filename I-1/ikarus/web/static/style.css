@@ -179,6 +179,13 @@ table.ledger tbody tr:hover{background:rgba(255,255,255,.02)}
   border:1px solid var(--line); background:var(--surface-2); font-size:14px}
 .naive-line.hijacked{color:var(--danger); border-color:var(--danger-line); background:var(--danger-bg)}
 .naive-line.safe{color:var(--ok); border-color:var(--ok-line); background:var(--ok-bg)}
+/* Exfiltration legend — only rendered when the naive agent was hijacked (see
+   _scenes.html for why: it states the point a real send can't prove here without
+   a verified domain — the data left toward a THIRD PARTY, not you). */
+.exfil-legend{margin:10px 0 0; display:flex; align-items:center; gap:9px;
+  font-size:13.5px; color:var(--danger); font-weight:500}
+.exfil-legend svg{width:18px; height:18px; flex:none}
+.exfil-legend strong{font-weight:700; letter-spacing:.01em}
 .note{margin:8px 0 0; color:var(--muted); font-family:var(--mono); font-size:12px}
 
 /* ---- Sandbox form ------------------------------------------------------ */
