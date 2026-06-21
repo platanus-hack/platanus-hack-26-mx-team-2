@@ -180,4 +180,4 @@ def test_provider_picker_sits_above_the_live_run():
 def test_live_flow_accepts_pdf_scenario():
     r = client.post("/flow/live", data={"scenario": "pdf"})
     assert r.status_code == 200
-    assert "Capa 1" in r.text  # step rendered for the pdf scenario
+    assert "Summarize this PDF" in r.text  # pdf-specific request text proves the scenario flowed through
