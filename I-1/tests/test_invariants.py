@@ -34,3 +34,16 @@ def test_q_llm_output_is_always_untrusted_even_if_value_looks_benign():
 def test_untrusted_dominates_in_combine():
     assert combine_trust([Trust.TRUSTED, Trust.UNTRUSTED]) == Trust.UNTRUSTED
     assert combine_trust([Trust.TRUSTED, Trust.TRUSTED]) == Trust.TRUSTED
+
+
+from ikarus.scenarios import default_scenarios
+
+
+def test_planner_never_receives_the_inbox_text():
+    # Architectural guarantee: the dirty inbox is not part of the planner's input.
+    sc = default_scenarios().create("email")
+    assert "attacker@evil.com" in sc.inbox_text          # the injection IS in the data
+    # The trusted request the planner plans from must NOT contain it.
+    assert "attacker@evil.com" not in sc.request
+    assert all("attacker@evil.com" not in str(v.value)
+               for v in sc.request_values.values())
