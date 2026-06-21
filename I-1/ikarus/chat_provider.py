@@ -20,6 +20,7 @@ from typing import Any, Callable, Optional, Protocol, runtime_checkable
 
 from ikarus.config import (
     DEFAULT_CLAUDE_MODEL,
+    DEFAULT_LMSTUDIO_MODEL,
     DEFAULT_OPENAI_MODEL,
     Settings,
 )
@@ -157,8 +158,9 @@ def make_chat_provider(settings: Settings, *,
         return MockChatProvider()
     if provider == "lmstudio":
         # LM Studio ignores the key and serves an OpenAI-compatible endpoint.
+        # Default to a medium, non-reasoning model (not the engine's planner default).
         return OpenAICompatProvider(settings.base_url, settings.api_key,
-                                    _chat_model(settings, settings.model),
+                                    _chat_model(settings, DEFAULT_LMSTUDIO_MODEL),
                                     max_tokens=max_tokens, timeout=timeout)
     if provider == "openai":
         if not settings.openai_api_key:

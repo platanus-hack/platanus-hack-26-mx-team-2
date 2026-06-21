@@ -1,0 +1,7 @@
+{# Step 2 (Q-LLM) + a self-firing loader that runs step 3 (the guard). #}
+{% with s = step %}{% include "_flow_step.html" %}{% endwith %}
+<form class="live-pending" hx-post="/flow/live/guard" hx-trigger="load"
+      hx-target="this" hx-swap="outerHTML">
+  <input type="hidden" name="addr" value="{{ extracted }}">
+  <span class="live-spinner" aria-hidden="true"></span> Guardia evaluando…
+</form>

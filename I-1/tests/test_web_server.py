@@ -137,17 +137,24 @@ def test_chat_with_unconfigured_claude_surfaces_error_not_500():
     assert "[error]" in r.text
 
 
-def test_flow_live_returns_three_real_layers_and_block():
-    r = client.post("/flow/live")                 # default provider = mock (offline)
+def test_flow_live_step1_pllm_then_chains_to_extract():
+    r = client.post("/flow/live")                  # step 1 — P-LLM (mock, offline)
     assert r.status_code == 200
-    assert "P-LLM" in r.text and "Q-LLM" in r.text and "Guardia" in r.text
-    assert "BLOCK" in r.text and "determinista" in r.text
+    assert "P-LLM" in r.text
+    assert 'hx-post="/flow/live/extract"' in r.text  # auto-fires the next step
+    assert "request / response" in r.text.lower() and "▸ system:" in r.text  # raw logs
 
 
-def test_flow_live_exposes_raw_model_logs():
-    r = client.post("/flow/live")
-    assert "request / response" in r.text.lower()  # collapsible logs present
-    assert "▸ system:" in r.text                    # raw prompt is shown
+def test_flow_live_step2_extract_untrusted_then_chains_to_guard():
+    r = client.post("/flow/live/extract")          # step 2 — Q-LLM
+    assert "Q-LLM" in r.text and "UNTRUSTED" in r.text
+    assert 'hx-post="/flow/live/guard"' in r.text   # auto-fires the guard
+    assert 'name="addr"' in r.text                  # carries the extracted value
+
+
+def test_flow_live_step3_guard_is_deterministic_and_blocks():
+    r = client.post("/flow/live/guard", data={"addr": "attacker@evil.com"})
+    assert "Guardia" in r.text and "determinista" in r.text and "BLOCK" in r.text
 
 
 def test_chat_exposes_raw_model_logs_after_a_turn():
