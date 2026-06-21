@@ -1,31 +1,51 @@
 {% for s in scenes %}
-<article class="scene {{ 'blocked' if s.blocked else 'allowed' }}{{ ' naive' if s.is_naive else '' }}">
-  <h3>{{ s.title }}</h3>
+<article class="scene {{ s.status_class }}">
+  <div class="scene-head">
+    <div>
+      <h3><span class="scene-id">#{{ s.scene }}</span>{{ s.title }}</h3>
+      <p class="scene-sub">{{ s.subtitle }}</p>
+    </div>
+    <span class="badge {{ s.status_class }}">{{ s.status }}</span>
+  </div>
+
   {% if s.is_naive %}
     <p class="naive-line {{ 'hijacked' if s.hijacked else 'safe' }}">
-      Naive agent sent to <code>{{ s.naive_recipient }}</code>
+      El agente ingenuo envió a <code>{{ s.naive_recipient }}</code>
       — <strong>hijacked={{ s.hijacked }}</strong>
     </p>
   {% else %}
-    <table class="ledger">
-      <caption>Taint Ledger</caption>
-      <thead>
-        <tr><th>Step</th><th>Kind</th><th>Detail</th><th>Trust</th><th>Policy</th></tr>
-      </thead>
-      <tbody>
-      {% for r in s.rows %}
-        <tr>
-          <td>{{ r.step }}</td>
-          <td>{{ r.kind }}</td>
-          <td>{{ r.detail }}</td>
-          <td class="{{ r.trust_class }}">{{ r.trust }}</td>
-          <td class="{{ r.policy_class }}">{{ r.policy }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    <p class="verdict {{ 'block' if s.blocked else 'pass' }}">VERDICT: {{ s.verdict }}</p>
-    {% if s.used_fallback %}<p class="note">[note] used canonical fallback plan</p>{% endif %}
+    <div class="ledger-wrap">
+      <table class="ledger">
+        <caption>Taint Ledger</caption>
+        <thead>
+          <tr><th scope="col">Paso</th><th scope="col">Tipo</th><th scope="col">Detalle</th><th scope="col">Trust</th><th scope="col">Política</th></tr>
+        </thead>
+        <tbody>
+        {% for r in s.rows %}
+          <tr>
+            <td>{{ r.step }}</td>
+            <td>{{ r.kind }}</td>
+            <td>{{ r.detail }}</td>
+            <td>{% if r.trust %}<span class="tt {{ r.trust_class }}">{{ r.trust }}</span>{% endif %}</td>
+            <td class="pol-{{ r.policy_class }}">{{ r.policy }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="verdict {{ 'block' if s.blocked else 'pass' }}">
+      {% if s.blocked %}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4.5 4.5l15 15"/><circle cx="12" cy="12" r="9"/></svg>
+      {% else %}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 6L9 17l-5-5"/></svg>
+      {% endif %}
+      VEREDICTO: {{ s.verdict }}
+    </p>
+    {% if s.used_fallback %}<p class="note">[note] se usó el plan canónico de respaldo</p>{% endif %}
   {% endif %}
 </article>
 {% endfor %}

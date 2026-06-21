@@ -99,15 +99,24 @@ flowchart TB
 
 ## Web UI (demo + sandbox)
 
-A FastAPI + HTMX interface: the guided 3-scene demo plus a **sandbox** where you
-type your own request and hide an injection in the inbox, then watch Ikarus
-contain it while the naive agent gets hijacked. Runs in mock mode (no model).
+A FastAPI + HTMX interface (Spanish copy): the guided 3-scene demo plus a
+**sandbox** where you type your own request and hide an injection in the inbox,
+then watch Ikarus contain it while the naive agent gets hijacked. Runs in mock
+mode (no model).
 
 ```bash
 cd I-1
 pip install -e ".[web]"
 python -m ikarus.web            # serves http://127.0.0.1:8000
 ```
+
+The UI follows the IKARUS brand design system: a 3-layer pipeline diagram
+(P-LLM → Q-LLM → Interpreter) telling the containment story, status badges
+(`ALLOWED` / `BLOCKED` / `HIJACKED`), `TRUSTED`/`UNTRUSTED` pills on the Taint
+Ledger, and verdict banners. All assets are **self-hosted/offline** — Fira Sans +
+Fira Code (`static/fonts/`) and htmx (`static/vendor/`) ship in the repo, so the
+demo needs no network. Brand orange `#FE751F`; green/red are reserved for the
+security semantics. Respects `prefers-reduced-motion` and is responsive.
 
 ## Run (no model required)
 

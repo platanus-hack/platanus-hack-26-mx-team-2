@@ -16,7 +16,7 @@ def test_index_returns_html_with_three_scenes():
 
 def test_index_does_not_leak_injection_into_scene1_ledger():
     r = client.get("/")
-    assert "Scene 1" in r.text
+    assert "Escena 1" in r.text
 
 
 def test_sandbox_contains_custom_injection_and_hijacks_naive():
