@@ -216,7 +216,7 @@ Lo que recibes:
 - `ModuleNotFoundError: ikarus` → corre **desde `I-1/`** o ejecuta `pip install -e .` ahí.
 - El demo se imprime doble → revisa `ikarus/tui.py` (`Console(record=True, file=io.StringIO())`).
 - `--live` cuelga o da error de conexión → LM Studio no está sirviendo en `localhost:1234`.
-- Para entender qué se simplificó vs CaMeL real → `docs/HONESTY.md` y `docs/CAMEL-VS-IKARUS.md`.
+- Para entender qué se simplificó → `docs/HONESTY.md` y `docs/CAMEL-VS-IKARUS.md`.
 
 ## 6. Estado y contexto
 

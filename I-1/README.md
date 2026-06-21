@@ -1,8 +1,8 @@
 # Ikarus
 
 Local demo that **contains** indirect prompt injection *by design* — not by
-detecting it. Inspired by DeepMind's CaMeL ("Defeating Prompt Injections by
-Design", 2025); it is **not** a reimplementation (see [docs/HONESTY.md](docs/HONESTY.md)).
+detecting it. It separates planning from untrusted data and blocks any dangerous
+action whose arguments are tainted (see [docs/HONESTY.md](docs/HONESTY.md)).
 
 ## The problem: indirect prompt injection
 
@@ -199,8 +199,8 @@ python -m ikarus.tools.email_sink --to you@x.com --body hi
 
 ## Honesty
 
-See [docs/HONESTY.md](docs/HONESTY.md) for exactly what is simplified vs. real CaMeL.
-See [docs/CAMEL-VS-IKARUS.md](docs/CAMEL-VS-IKARUS.md) for a file-by-file comparison
-against the real CaMeL reference implementation.
+See [docs/HONESTY.md](docs/HONESTY.md) for exactly what Ikarus simplifies.
+See [docs/CAMEL-VS-IKARUS.md](docs/CAMEL-VS-IKARUS.md) for a file-by-file
+comparison of the approach.
 For the full project state (decisions, file map, pending stretch work), see
 [docs/ESTADO-IKARUS.md](docs/ESTADO-IKARUS.md).
