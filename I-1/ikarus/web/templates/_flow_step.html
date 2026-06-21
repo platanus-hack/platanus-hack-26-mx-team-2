@@ -9,6 +9,7 @@
   <p class="live-title">{{ s.title }}</p>
   <pre class="live-detail">{{ s.detail }}</pre>
   <p class="live-note">{{ s.note }}</p>
+  {% if s.seen %}<p class="planner-seen">🛈 {{ s.seen }}</p>{% endif %}
   {% if s.req %}
   <div class="model-logs">
     <p class="logs-title">Logs del modelo</p>

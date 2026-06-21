@@ -80,6 +80,8 @@ def live_plan(settings, scenario: dict) -> dict:
         "title": "Planificador emite el plan",
         "detail": _short(plan),
         "note": "El modelo solo vio la petición confiable + el catálogo — NUNCA el inbox.",
+        "seen": ("El planificador SOLO recibió: la petición confiable + el catálogo "
+                 "de herramientas. El inbox NO entró a su prompt."),
         "trust": "", "decision": "",
         "req": _req_log(_PLANNER_SYSTEM, p_user), "resp": _short(plan, 4000)}
 
