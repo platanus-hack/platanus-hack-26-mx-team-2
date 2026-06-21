@@ -15,3 +15,5 @@ Task 3: complete (commits e4256b2..7042429, review clean)
   - Minor: Optional[str] vs str|None style; alias reverse-direction not tested
 NOTE (environmental, all tasks): pytest-asyncio deprecation warning is from a globally-installed
   plugin (not a project dep, no async code). Not pristine but not our code's fault.
+Task 4: complete (commits 6adfbb7..8bebe17, review clean)
+  - Minor: unknown-tool-lookup path untested; fluent register() return unused
