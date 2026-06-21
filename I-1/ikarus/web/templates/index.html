@@ -157,6 +157,15 @@
   <script>
     var reduceMotion = window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Drive the live-run button's "Ejecutando…" label off htmx request events.
+    // (htmx can leave its own .htmx-request class stuck on the button here, so we
+    // toggle our own .is-running and always clear it on afterRequest.)
+    function liveBtn(e) { var el = e.detail && e.detail.elt;
+      return (el && el.matches && el.matches('.live-run button')) ? el : null; }
+    document.body.addEventListener('htmx:beforeRequest', function (e) {
+      var b = liveBtn(e); if (b) b.classList.add('is-running'); });
+    document.body.addEventListener('htmx:afterRequest', function (e) {
+      var b = liveBtn(e); if (b) b.classList.remove('is-running'); });
     document.body.addEventListener('htmx:afterSwap', function (e) {
       // Keep the chat scrolled to the latest message.
       var log = document.getElementById('chat-log');

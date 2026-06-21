@@ -181,17 +181,21 @@ def create_app() -> FastAPI:
     def _live_error(request: Request, exc) -> HTMLResponse:
         return templates.TemplateResponse(request, "_flow_error.html", {"error": str(exc)})
 
-    @api.post("/flow/live", response_class=HTMLResponse)  # step 1 — P-LLM
+    @api.post("/flow/live", response_class=HTMLResponse)  # full walk: naive + P + Q + guard
     def flow_live(request: Request, scenario: str = Form("email")):
+        # Run the whole flow in one request and return ALL steps, so the client can
+        # present a navigable pipeline (strip + step/replay/reset) instead of a
+        # one-shot wall of logs. The per-step endpoints below remain for direct use.
         settings = _effective_settings()
+        sc = _live_scenario(scenario)
         try:
-            naive = live_naive(settings, _live_scenario(scenario))
-            step = live_plan(settings, _live_scenario(scenario))
+            steps = [live_naive(settings, sc), live_plan(settings, sc)]
+            ext_step, extracted = live_extract(settings, sc)
+            steps += [ext_step, live_guard(extracted)]
         except (ChatError, ValueError) as exc:
             return _live_error(request, exc)
         return templates.TemplateResponse(request, "_flow_live.html", {
-            "naive": naive, "step": step,
-            "provider": settings.llm_provider, "scenario": scenario})
+            "steps": steps, "provider": settings.llm_provider, "scenario": scenario})
 
     @api.post("/flow/live/extract", response_class=HTMLResponse)  # step 2 — Q-LLM
     def flow_live_extract(request: Request, scenario: str = Form("email")):

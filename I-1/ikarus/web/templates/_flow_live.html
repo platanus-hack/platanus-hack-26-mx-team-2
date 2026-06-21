@@ -1,5 +1,7 @@
-{# Step 1 (P-LLM) + a self-firing loader that runs step 2 (Q-LLM) on arrival. #}
-<div class="live-trace">
+{# Full live walk: naive + P-LLM + Q-LLM + guard. flow.js turns this into a
+   navigable pipeline (strip + Reproducir/Paso/Reiniciar, one step at a time).
+   Without JS every step stays visible (progressive enhancement). #}
+<div class="live-walk" data-live="1">
   {% if provider == 'mock' %}
   <p class="live-mock-note">⚠ Estás en <code>mock</code> (sin modelo real): lo de abajo es
     salida simulada determinista. Para ver <strong>generación real + logs de un LLM</strong>,
@@ -7,10 +9,7 @@
   {% endif %}
   <p class="live-trace-head">Ejecución <strong>en vivo</strong> · provider: <code>{{ provider }}</code>
     {% if provider != 'mock' %}— salidas reales de los modelos, paso a paso.{% endif %}</p>
-  {% if naive %}<div class="baseline">{% with s = naive %}{% include "_flow_step.html" %}{% endwith %}</div>{% endif %}
-  {% with s = step %}{% include "_flow_step.html" %}{% endwith %}
-  <form class="live-pending" hx-post="/flow/live/extract" hx-trigger="load"
-        hx-target="this" hx-swap="outerHTML" hx-vals='{"scenario": "{{ scenario }}"}'>
-    <span class="live-spinner" aria-hidden="true"></span> Q-LLM ejecutando…
-  </form>
+  <div class="live-steps">
+    {% for s in steps %}{% include "_flow_step.html" %}{% endfor %}
+  </div>
 </div>
