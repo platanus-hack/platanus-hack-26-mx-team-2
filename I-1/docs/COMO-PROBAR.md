@@ -40,7 +40,7 @@ Desde `I-1/`:
 python3 -m pytest -q
 ```
 
-**Esperado:** `128 passed`. Puede salir UN warning de `pytest-asyncio` — es del entorno
+**Esperado:** `200 passed`. Puede salir UN warning de `pytest-asyncio` — es del entorno
 (plugin global), no es del proyecto. Ignóralo.
 
 ## 2. Correr el demo completo en modo mock (no necesita LM Studio)

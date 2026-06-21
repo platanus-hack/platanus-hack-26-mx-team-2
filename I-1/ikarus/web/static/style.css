@@ -168,24 +168,26 @@ h1,h2,h3{text-wrap:balance}
 .badge.danger{color:var(--danger); background:var(--danger-bg); border-color:var(--danger-line)}
 
 /* ---- Model logs (raw request/response — always visible, proof the LLM ran) */
-.model-logs{margin:10px 0 0; padding:10px 12px 4px; border:1px solid var(--line);
-  border-radius:var(--radius-sm); background:var(--bg)}
-.logs-title{margin:0 0 6px; font-family:var(--mono); font-size:11px; font-weight:700;
+.model-logs{margin:10px 0 0; padding:10px 12px; border:1px solid var(--line);
+  border-radius:var(--radius-sm); background:var(--bg);
+  display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; align-items:start}
+.logs-title{grid-column:1 / -1; margin:0; font-family:var(--mono); font-size:11px; font-weight:700;
   letter-spacing:.06em; text-transform:uppercase; color:var(--brand)}
-.log-block{padding:0 0 8px}
+.log-block{padding:0; min-width:0}
+@media (max-width:640px){ .model-logs{grid-template-columns:1fr} }
 .log-label{display:inline-block; font-family:var(--mono); font-size:10px; font-weight:700;
   letter-spacing:.06em; color:var(--muted); margin:6px 0 4px}
-.log-block pre{margin:0; font-family:var(--mono); font-size:11.5px; line-height:1.5;
+.log-block pre{margin:0; font-family:var(--mono); font-size:11px; line-height:1.45;
   white-space:pre-wrap; word-break:break-word; color:var(--ink);
-  background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:9px 11px;
-  max-height:200px; overflow:auto; overscroll-behavior:contain}
+  background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:8px 10px;
+  max-height:96px; overflow:auto; overscroll-behavior:contain}
 
 /* ---- Live run (real models, step-by-step) ------------------------------ */
 .live-run{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 4px}
 .live-run button .label-busy{display:none}
-.live-run button.htmx-request .label-idle{display:none}
-.live-run button.htmx-request .label-busy{display:inline}
-.live-run button.htmx-request{opacity:.8}
+.live-run button.is-running .label-idle{display:none}
+.live-run button.is-running .label-busy{display:inline}
+.live-run button.is-running{opacity:.8}
 #live-result:empty{display:none}
 .live-trace{margin:14px 0 6px; display:flex; flex-direction:column; gap:12px}
 .live-trace-head{margin:0; color:var(--muted); font-size:13px}
@@ -204,7 +206,8 @@ h1,h2,h3{text-wrap:balance}
 .live-title{margin:8px 0 6px; font-size:13.5px; color:var(--muted)}
 .live-detail{margin:0; font-family:var(--mono); font-size:12.5px; line-height:1.5;
   white-space:pre-wrap; word-break:break-word; background:var(--bg); color:var(--ink);
-  border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 12px}
+  border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 12px;
+  max-height:140px; overflow:auto; overscroll-behavior:contain}
 .live-note{margin:8px 0 0; font-size:12px; color:var(--muted)}
 .live-error{margin:14px 0 0; padding:11px 14px; border-radius:var(--radius-sm);
   color:var(--danger); background:var(--danger-bg); border:1px solid var(--danger-line);
@@ -251,6 +254,18 @@ h1,h2,h3{text-wrap:balance}
 .flow-status{font-family:var(--mono); font-size:11.5px; color:var(--muted)}
 table.ledger tbody tr.pending{opacity:.18; transition:opacity var(--t)}
 @media (max-width:560px){.flow-strip{flex-wrap:wrap}.flow-arrow{display:none}}
+
+/* ---- Live walk: navigable pipeline over the real per-step cards -------- */
+.flow-strip.live{flex-wrap:wrap}
+.flow-stage.live{-webkit-appearance:none; appearance:none; text-align:left;
+  cursor:pointer; font:inherit; color:inherit}
+.flow-stage.live:hover{border-color:var(--brand-dim)}
+.flow-stage.live.done{opacity:.6}
+.flow-stage.live.naive.active{border-color:#7f1d1d; background:rgba(127,29,29,.14)}
+.flow-stage.live.naive.active .flow-dot{background:#fca5a5; box-shadow:0 0 10px #7f1d1d}
+.flow-verdict.taint{color:var(--brand); background:var(--brand-bg); border:1px solid var(--brand-dim)}
+.live-walk.walk-on .live-steps > .live-step{display:none}
+.live-walk.walk-on .live-steps > .live-step.is-active{display:block}
 
 /* ---- Taint ledger ------------------------------------------------------ */
 .ledger-wrap{overflow-x:auto; margin-top:14px; border:1px solid var(--line); border-radius:var(--radius-sm)}

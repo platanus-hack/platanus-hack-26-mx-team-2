@@ -114,22 +114,33 @@ flowchart TB
 
 ## Web UI (demo + sandbox)
 
-A FastAPI + HTMX interface (Spanish copy) with four parts:
+A FastAPI + HTMX interface (Spanish copy). A control bar at the top picks the **scenario**
+(`email` | `pdf`) and the **LLM provider** that govern the live run and chat — placed right
+next to what it controls, not buried at the bottom.
+
+- **Run live (navigable flow)** — runs the real models and shows the whole pipeline as a
+  walkable flow: a **Capa 0 → 1 → 2 → 3** strip (naive baseline → P-LLM → Q-LLM → guard) with
+  **Reproducir / Paso / Reiniciar** controls, revealing **one layer at a time** with its raw
+  request/response logs, so you can step through and go back. Layer 0 is a naive single-LLM
+  agent getting **hijacked (red)** next to Ikarus **containing it (green)**, and the P-LLM card
+  proves it never received the dirty inbox. Only P-LLM/Q-LLM use the model; the guard stays
+  deterministic. The scene engine is always mock — no real email is sent from the live run.
+- **Send 1 real email (opt-in)** — a single explicit button sends exactly one real email per
+  click, only when `IKARUS_SINK=resend` is configured; mock-safe by default (never sends, never
+  crashes). Keeps the demo from spamming while still proving a real side effect.
 - **Guided demo** — the 3 scenes with an animated P-LLM → Q-LLM → Guardia pipeline and a
-  play/step walkthrough of the Taint Ledger.
+  play/step walkthrough of the Taint Ledger, for both `email` and `pdf` scenarios.
 - **Sandbox** — type your own request and hide an injection in the inbox; watch Ikarus
   contain it while the naive agent gets hijacked.
 - **Chat** — talk to the naive agent through a **swappable LLM provider**
-  (`mock` | LM Studio | OpenAI | Claude), chosen from the UI (provider + API key).
-- **Run live** — runs the real P-LLM and Q-LLM against the configured provider and shows
-  their actual output step by step (the guard stays deterministic). The scene engine itself
-  is always mock — no real email is sent from the web.
+  (`mock` | LM Studio | OpenAI | Claude), chosen from the control bar (provider + API key).
 
 ```bash
 cd I-1
 pip install -e ".[web]"
 python -m ikarus.web            # serves http://127.0.0.1:8000
-# real models in the chat / live run:
+#   ^ auto-detects a running LM Studio and uses it for the live run / chat.
+# force a provider explicitly:
 IKARUS_LLM_PROVIDER=lmstudio IKARUS_CHAT_MODEL="google/gemma-3-12b" python -m ikarus.web
 ```
 
@@ -219,6 +230,25 @@ Smoke test the sink directly:
 ```bash
 python -m ikarus.tools.email_sink --to you@x.com --body hi
 ```
+
+## Tests — the guarantee as an invariant
+
+```bash
+cd I-1 && python -m pytest -q        # 200 passing
+```
+
+The suite proves the containment is **structural, not detection** — not just that the happy
+path runs:
+- **Invariants** (`tests/test_invariants.py`): the guard blocks a sink **iff** an argument is
+  `UNTRUSTED`, for the same address string both ways — so the decision depends on the **taint
+  label, not the value**; the Q-LLM extractor's output is **born UNTRUSTED** regardless of
+  content; the P-LLM planner's input **never contains the inbox**.
+- **Adversarial** (`tests/attacks.py`, `tests/test_adversarial.py`): a battery of injection
+  variants — the deterministic guard contains **every** one, and the naive single-LLM agent is
+  **hijacked by every** one (the battery only keeps variants it genuinely falls for, so the
+  contrast stays honest).
+- **End-to-end** (`tests/test_scenarios.py`): Scene 1 `ALLOWED`, Scene 2 `BLOCKED`, Scene 3
+  hijacked — for **both** `email` and `pdf`.
 
 ## Vision (designed, NOT implemented in this demo)
 

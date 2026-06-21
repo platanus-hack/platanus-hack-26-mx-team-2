@@ -137,11 +137,13 @@ def test_chat_with_unconfigured_claude_surfaces_error_not_500():
     assert "[error]" in r.text
 
 
-def test_flow_live_step1_pllm_then_chains_to_extract():
-    r = client.post("/flow/live")                  # step 1 — P-LLM (mock, offline)
+def test_flow_live_runs_the_full_navigable_walk():
+    r = client.post("/flow/live")                  # full walk in one request (mock, offline)
     assert r.status_code == 200
-    assert "P-LLM" in r.text
-    assert 'hx-post="/flow/live/extract"' in r.text  # auto-fires the next step
+    assert 'data-live="1"' in r.text               # navigable walk container (flow.js enhances it)
+    # all four layers present so the client can build the pipeline strip
+    assert ("Agente ingenuo" in r.text and "P-LLM" in r.text
+            and "Q-LLM" in r.text and "Guardia" in r.text)
     assert "Logs del modelo" in r.text and "▸ system:" in r.text  # raw logs, always shown
 
 
