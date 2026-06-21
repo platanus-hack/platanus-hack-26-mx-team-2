@@ -7,6 +7,7 @@ from ikarus.policy import check, Decision
 from ikarus.tools.registry import ToolRegistry
 from ikarus.tools.sources import read_inbox
 from ikarus.tools.sinks import send_email, share_doc
+from ikarus.tools.email_sink import SinkBlocked
 from ikarus.q_llm import extract
 
 _SINK_FUNCS = {"send_email": send_email, "share_doc": share_doc}
@@ -26,7 +27,8 @@ class ExecutionResult:
     executed_sinks: list[str]
 
 def validate_plan(plan: Plan, registry: ToolRegistry,
-                  request_values: dict[str, Tainted]) -> list[str]:
+                  request_values: dict[str, Tainted],
+                  sinks: Optional[dict] = None) -> list[str]:
     """Statically check a plan against the interpreter's execution invariants.
 
     Real LLMs can emit structurally-valid (schema-passing) plans that are not
@@ -35,6 +37,7 @@ def validate_plan(plan: Plan, registry: ToolRegistry,
     the plan is safe to run), so callers can fall back before executing — and
     before any sink fires.
     """
+    funcs = sinks or _SINK_FUNCS
     errors: list[str] = []
     seen: set[str] = set()
     for step in plan.steps:
@@ -48,12 +51,12 @@ def validate_plan(plan: Plan, registry: ToolRegistry,
             errors.append(f"extract step '{step.id}' input_ref '{step.input_ref}' "
                           "is not an earlier step")
         if step.kind == "sink" and step.tool:
-            if step.tool not in _SINK_FUNCS:
+            if step.tool not in funcs:
                 errors.append(f"step '{step.id}' uses unknown sink tool '{step.tool}'")
             else:
                 # The sink is called as fn(**args); flag missing-required or
                 # unexpected args that would raise TypeError at execution.
-                params = inspect.signature(_SINK_FUNCS[step.tool]).parameters
+                params = inspect.signature(funcs[step.tool]).parameters
                 required = {n for n, p in params.items()
                             if p.default is inspect.Parameter.empty}
                 provided = set(step.args)
@@ -92,7 +95,9 @@ def _resolve(arg: ArgRef, env: dict[str, Tainted], request_values: dict[str, Tai
     raise ValueError(f"bad ArgRef source: {arg.from_}")
 
 def run(plan: Plan, request_values: dict[str, Tainted], inbox_text: str,
-        registry: ToolRegistry, mock: bool = True, q_mock_value: str = "") -> ExecutionResult:
+        registry: ToolRegistry, mock: bool = True, q_mock_value: str = "",
+        sinks: Optional[dict] = None) -> ExecutionResult:
+    funcs = sinks or _SINK_FUNCS
     env: dict[str, Tainted] = {}
     events: list[TraceEvent] = []
     executed: list[str] = []
@@ -116,10 +121,18 @@ def run(plan: Plan, request_values: dict[str, Tainted], inbox_text: str,
             events.append(TraceEvent(step.id, "sink", f"policy on {step.tool}",
                                      decision=decision))
             if decision.allowed:
-                if step.tool not in _SINK_FUNCS:
+                if step.tool not in funcs:
                     raise ValueError(f"no sink function registered for tool '{step.tool}'")
-                _SINK_FUNCS[step.tool](**{k: v.value for k, v in args.items()})
-                executed.append(step.tool)
+                try:
+                    funcs[step.tool](**{k: v.value for k, v in args.items()})
+                    executed.append(step.tool)
+                except SinkBlocked as exc:
+                    # Real sink's own allowlist refused this recipient — record it
+                    # as a block instead of crashing the run.
+                    blocked = True
+                    events.append(TraceEvent(
+                        step.id, "sink", f"real sink refused: {exc}",
+                        decision=Decision(False, str(exc))))
             else:
                 blocked = True
     return ExecutionResult(events, blocked, executed)

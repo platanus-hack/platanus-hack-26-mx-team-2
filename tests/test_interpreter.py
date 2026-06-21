@@ -2,6 +2,7 @@ import pytest
 from ikarus.interpreter import run, validate_plan, ExecutionResult
 from ikarus.schemas import Plan, PlanStep, ArgRef
 from ikarus.tools.registry import default_registry, ToolRegistry, ToolSpec, ToolKind
+from ikarus.tools.email_sink import SinkBlocked
 from ikarus.labels import trusted
 
 def _req():
@@ -94,6 +95,35 @@ def test_validate_plan_flags_sink_missing_required_arg():
         "to": ArgRef(**{"from": "request", "ref": "recipient"})})])
     errors = validate_plan(plan, default_registry(), _req())
     assert any("body" in e for e in errors)
+
+def test_run_uses_injected_sink():
+    calls = []
+    def fake_send(to, body): calls.append((to, body)); return "ok"
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "request", "ref": "recipient"}),
+        "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    res = run(plan, _req(), inbox_text="", registry=default_registry(),
+              sinks={"send_email": fake_send})
+    assert calls == [("bob@corp.com", "Q3 figures")]
+    assert "send_email" in res.executed_sinks
+
+def test_run_handles_sink_blocked_without_crashing():
+    def blocked_send(to, body): raise SinkBlocked("not in allowlist")
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "request", "ref": "recipient"}),
+        "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    res = run(plan, _req(), inbox_text="", registry=default_registry(),
+              sinks={"send_email": blocked_send})
+    assert res.blocked is True
+    assert "send_email" not in res.executed_sinks
+
+def test_validate_plan_uses_injected_sinks():
+    # Injected sink has a different signature; validation must use it, not the default.
+    def one_arg(to): return "ok"
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "request", "ref": "recipient"})})])
+    assert validate_plan(plan, default_registry(), _req(),
+                         sinks={"send_email": one_arg}) == []
 
 def test_validate_plan_flags_sink_unexpected_arg():
     plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
