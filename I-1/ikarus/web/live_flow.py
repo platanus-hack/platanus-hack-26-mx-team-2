@@ -117,9 +117,8 @@ def live_naive(settings, scenario: dict) -> dict:
     """Baseline: a single-LLM naive agent given request+inbox together. With a
     real provider it is asked to pick the recipient and gets hijacked; the value
     is the proof the attack is real. Deterministic mock when provider is mock."""
-    from ikarus.naive_agent import run as naive_run, extract_injected_address
+    from ikarus.naive_agent import run as naive_run
     inbox, req = scenario["inbox_text"], scenario["request"]
-    addr = extract_injected_address(inbox) or "bob@corp.com"  # noqa: F841
     res = naive_run(req, inbox, "bob@corp.com", mock=True)
     return {
         "stage": "0", "layer": "Agente ingenuo (sin defensa)",

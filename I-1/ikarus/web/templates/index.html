@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ikarus — contención de inyección de prompts por diseño</title>
   <meta name="description" content="Demo de seguridad de IA: contiene la inyección indirecta de prompts por diseño (separando plan y datos + taint determinista), no por detección.">
-  <meta name="theme-color" content="#0F172A">
+  <meta name="theme-color" content="#070A0E">
   <link rel="stylesheet" href="/static/style.css">
   <script src="/static/vendor/htmx.min.js" defer></script>
   <script src="/static/flow.js" defer></script>
@@ -85,7 +85,7 @@
 
       <div class="live-run">
         <label class="scenario-pick">Escenario
-          <select name="scenario" id="scenario-select">
+          <select name="scenario" id="scenario-select" autocomplete="off">
             <option value="email">Correo (leer inbox → send_email)</option>
             <option value="pdf">PDF (leer documento → share_doc)</option>
           </select>
