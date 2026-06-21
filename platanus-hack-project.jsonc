@@ -1,18 +1,14 @@
 {
   // Your project's name, as it will appear on the voting page.
   "project-name": "Ikarus",
-
   // Short one-line summary of your project (in Spanish).
   "project-oneliner-spanish": "Gateway MCP que contiene la prompt injection por diseño: separa el plan de los datos para que ningún dato no confiable pueda disparar una acción peligrosa.",
-
   // Brief description of your project (in Spanish).
   "project-description-spanish": "Los agentes de IA leen datos no confiables (correos, webs, documentos) y actúan con tools vía MCP, lo que los hace vulnerables a prompt injection: una instrucción oculta en esos datos puede secuestrar lo que el agente hace después. Ikarus se conecta como un único MCP entre tu proveedor LLM y los MCPs que ya usas, y defiende por construcción, no por detección: un LLM planner escribe el plan viendo SOLO tu tarea (nunca los datos externos), un intérprete determinista lo ejecuta, y cada vez que necesita un dato no confiable lo pasa por un LLM en cuarentena que solo extrae campos y los marca como tainted. El intérprete propaga esas etiquetas y bloquea —deny-by-default— cualquier acción cuyos argumentos provengan de datos no confiables. La garantía es estructural: aunque el modelo base sea 100% engañable, una instrucción inyectada nunca deja de ser texto que se parsea, jamás una orden que se ejecuta.",
-
   // Public URL where your project is deployed and running.
   // Must be a valid URL, for example: https://my-project.vercel.app
   // If your project is an app, put the download link here instead
   // (for example, a URL to download an APK).
-  // TODO: reemplazar por la URL real del deploy (SPA + gateway always-on).
   // Placeholder válido mientras tanto: el repositorio del proyecto.
-  "deploy-url": "https://github.com/SebasCrucer/platanus-hack-26-mx-team-2"
+  "deploy-url": "ikarus.159.223.163.154.sslip.io"
 }
