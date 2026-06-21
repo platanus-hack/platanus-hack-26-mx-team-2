@@ -46,15 +46,8 @@
       </div>
 
       <div class="live-run">
-        <label class="scenario-pick">Escenario
-          <select name="scenario" id="scenario-select" autocomplete="off">
-            <option value="email">Correo (leer inbox → send_email)</option>
-            <option value="pdf">PDF (leer documento → share_doc)</option>
-          </select>
-        </label>
         <button class="flow-btn" type="button" hx-post="/flow/live"
-                hx-target="#live-result" hx-swap="innerHTML" hx-disabled-elt="this"
-                hx-include="#scenario-select">
+                hx-target="#live-result" hx-swap="innerHTML" hx-disabled-elt="this">
           <span class="label-idle">Ejecutar en vivo ▶</span>
           <span class="label-busy">Ejecutando modelos…</span>
         </button>
@@ -62,24 +55,6 @@
           Con modelos locales tarda unos segundos; usa uno ágil (p. ej. <code>gemma-3-12b</code>,
           <code>gpt-oss-20b</code>) — los de razonamiento son lentos.</span>
       </div>
-      <form class="upload-run" hx-post="/flow/upload" hx-target="#live-result"
-            hx-swap="innerHTML" hx-encoding="multipart/form-data" hx-disabled-elt="button">
-        <label class="upload-field">Sube tu propio documento (PDF o .txt) con una instrucción escondida
-          <input type="file" name="file" accept=".pdf,.txt" required>
-        </label>
-        <label class="upload-field">Petición confiable
-          <input name="user_request" value="Resume este documento y compártelo con mi equipo."
-                 autocomplete="off">
-        </label>
-        <input type="hidden" name="trusted_recipient" value="team@corp.com">
-        <button class="flow-btn" type="submit">
-          <span class="label-idle">Subir y ejecutar en vivo ▶</span>
-          <span class="label-busy">Leyendo documento…</span>
-        </button>
-        <span class="hint">El documento es la <strong>fuente no confiable</strong>: se extrae su
-          texto y se corre el mismo flujo en vivo. Con un modelo conectado, el agente ingenuo
-          obedece la instrucción escondida en TU archivo — y el guardia lo bloquea.</span>
-      </form>
       <div id="live-result" aria-live="polite"></div>
 
       <div class="send-test">
@@ -88,9 +63,6 @@
         <span id="send-result" aria-live="polite"></span>
       </div>
 
-      <div id="scenes" aria-live="polite">
-        {% include "_scenes.html" %}
-      </div>
     </section>
 
     <section class="panel">
@@ -111,9 +83,9 @@
         </label>
         <button type="submit">Ejecutar contención ▶</button>
       </form>
-      <p class="hint">Corre las tres escenas sobre tu input (reemplaza las tarjetas de arriba).
-        La dirección que escondas en el inbox es a donde el agente ingenuo exfiltra —
-        y exactamente lo que Ikarus bloquea.</p>
+      <p class="hint">Corre las tres escenas sobre tu input. La dirección que escondas en el
+        inbox es a donde el agente ingenuo exfiltra — y exactamente lo que Ikarus bloquea.</p>
+      <div id="scenes" aria-live="polite"></div>
     </section>
 
     <section class="panel" id="chat-panel">

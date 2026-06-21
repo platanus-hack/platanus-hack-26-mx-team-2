@@ -7,7 +7,7 @@ same UI works offline by default and against a real model when configured.
 import dataclasses
 import json
 from pathlib import Path
-from fastapi import FastAPI, File, Form, Request, UploadFile
+from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -17,7 +17,6 @@ from ikarus.config import load_settings
 from ikarus.naive_agent import extract_injected_address
 from ikarus.scenarios import build_scenario, default_scenarios
 from ikarus.tools.email_sink import MockEmailSink, make_email_sink, SinkError
-from ikarus.uploads import UploadError, extract_upload_text
 from ikarus.web.live_flow import live_extract, live_guard, live_naive, live_plan
 from ikarus.web.views import scene_view
 
@@ -116,9 +115,10 @@ def create_app() -> FastAPI:
 
     @api.get("/", response_class=HTMLResponse)
     def index(request: Request):
+        # No pre-rendered verdicts on load — a verdict shown before anything runs
+        # reads as fake. The live flow is the centerpiece; it produces the verdict.
         scenario = default_scenarios().create("email")
         return templates.TemplateResponse(request, "index.html", {
-            "scenes": _run_scenes_for(scenario),
             "default_request": scenario.request,
             "default_recipient": scenario.trusted_recipient,
             "default_body": "Q3 figures: revenue up 12%.",
@@ -186,7 +186,9 @@ def create_app() -> FastAPI:
     def _live_scenario(name: str = "email") -> dict:
         n = name if name in default_scenarios() else "email"
         s = default_scenarios().create(n)
-        return {"request": s.request, "inbox_text": s.inbox_text}
+        return {"request": s.request, "inbox_text": s.inbox_text,
+                "trusted_recipient": s.trusted_recipient,
+                "attacker_address": s.attacker_address}
 
     def _live_error(request: Request, exc) -> HTMLResponse:
         return templates.TemplateResponse(request, "_flow_error.html", {"error": str(exc)})
@@ -199,13 +201,20 @@ def create_app() -> FastAPI:
         settings = _effective_settings()
         sc = _live_scenario(scenario)
         try:
-            steps = [live_naive(settings, sc), live_plan(settings, sc)]
+            naive = live_naive(settings, sc)
+            plan = live_plan(settings, sc)
             ext_step, extracted = live_extract(settings, sc)
-            steps += [ext_step, live_guard(extracted)]
+            guard = live_guard(extracted)
         except (ChatError, ValueError) as exc:
             return _live_error(request, exc)
+        steps = [naive, plan, ext_step, guard]
+        # The verdict is DERIVED from the live guard above — it appears only after
+        # the flow ran, never precomputed on page load.
         return templates.TemplateResponse(request, "_flow_live.html", {
-            "steps": steps, "provider": settings.llm_provider, "scenario": scenario})
+            "steps": steps, "provider": settings.llm_provider, "scenario": scenario,
+            "verdict": "BLOCKED" if not guard["allowed"] else "ALLOWED",
+            "blocked": not guard["allowed"],
+            "naive_hijacked": naive.get("decision") == "EXFIL"})
 
     @api.post("/flow/live/extract", response_class=HTMLResponse)  # step 2 — Q-LLM
     def flow_live_extract(request: Request, scenario: str = Form("email")):
@@ -221,29 +230,6 @@ def create_app() -> FastAPI:
     def flow_live_guard(request: Request, addr: str = Form("")):
         step = live_guard((addr or "").strip()[:200])
         return templates.TemplateResponse(request, "_flow_step.html", {"s": step})
-
-    @api.post("/flow/upload", response_class=HTMLResponse)  # real PDF/txt, end-to-end
-    async def flow_upload(request: Request, file: UploadFile = File(...),
-                          user_request: str = Form(...),
-                          trusted_recipient: str = Form("team@corp.com")):
-        # The uploaded document is the UNTRUSTED source: extract its text, then run
-        # the SAME live walk on it — naive agent (real model when connected) gets
-        # hijacked by the hidden instruction, Ikarus blocks the tainted share_doc.
-        try:
-            text = extract_upload_text(await file.read(), file.filename or "")
-        except UploadError as exc:
-            return _live_error(request, exc)
-        settings = _effective_settings()
-        sc = {"request": user_request, "inbox_text": text,
-              "trusted_recipient": trusted_recipient}
-        try:
-            steps = [live_naive(settings, sc), live_plan(settings, sc)]
-            ext_step, extracted = live_extract(settings, sc)
-            steps += [ext_step, live_guard(extracted, tool="share_doc", arg="recipient")]
-        except (ChatError, ValueError) as exc:
-            return _live_error(request, exc)
-        return templates.TemplateResponse(request, "_flow_live.html", {
-            "steps": steps, "provider": settings.llm_provider, "scenario": "upload"})
 
     @api.post("/send-test", response_class=HTMLResponse)
     def send_test(request: Request):

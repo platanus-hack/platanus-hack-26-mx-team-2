@@ -113,6 +113,7 @@ def live_guard(addr: str, tool: str = "send_email", arg: str = "to") -> dict:
         "detail": decision.reason,
         "note": "No es un modelo: la decisión no depende de las palabras del dato.",
         "trust": "UNTRUSTED", "decision": "PASS" if decision.allowed else "BLOCK",
+        "allowed": decision.allowed, "reason": decision.reason,  # raw verdict for callers
         "req": "", "resp": ""}
 
 

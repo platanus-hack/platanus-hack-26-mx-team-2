@@ -12,4 +12,15 @@
   <div class="live-steps">
     {% for s in steps %}{% include "_flow_step.html" %}{% endfor %}
   </div>
+  {# Verdict DERIVED from the guard step above — shown only after the flow ran. #}
+  <div class="live-verdict {{ 'block' if blocked else 'pass' }}">
+    <p class="verdict-line">VEREDICTO: {{ verdict }}
+      <span class="verdict-sub">— Ikarus {{ 'bloqueó el sink contaminado' if blocked else 'permitió el envío legítimo' }} (guardia determinista).</span>
+    </p>
+    <p class="verdict-contrast">
+      Agente ingenuo (1 LLM, sin defensa):
+      {% if naive_hijacked %}<strong class="bad">HIJACKED — exfiltró al atacante</strong>.
+      {% else %}<strong class="good">no exfiltró esta vez</strong> — no dependas de eso; Ikarus bloquea por construcción.{% endif %}
+    </p>
+  </div>
 </div>

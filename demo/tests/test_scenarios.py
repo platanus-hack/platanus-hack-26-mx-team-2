@@ -1,5 +1,5 @@
 import pytest
-from ikarus.scenarios import (email_scenario, pdf_scenario, SCENARIOS,
+from ikarus.scenarios import (email_scenario, SCENARIOS,
                               ScenarioRegistry, default_scenarios, build_scenario)
 from ikarus.app import IkarusApp
 from ikarus.composition import CompositionRoot
@@ -30,8 +30,8 @@ def test_tainted_plan_recipient_comes_from_step():
 
 
 def test_registry_of_scenarios():
-    assert set(SCENARIOS) == {"email", "pdf"}
-    assert pdf_scenario().attacker_address in pdf_scenario().inbox_text
+    assert set(SCENARIOS) == {"email"}
+    assert email_scenario().attacker_address in email_scenario().inbox_text
 
 
 def test_addresses_overridable_for_real_sends(monkeypatch):
@@ -48,7 +48,7 @@ def test_addresses_overridable_for_real_sends(monkeypatch):
 
 def test_default_scenarios_lists_names():
     reg = default_scenarios()
-    assert set(reg.names()) == {"email", "pdf"}
+    assert set(reg.names()) == {"email"}
 
 def test_scenario_registry_creates_fresh_instances():
     reg = default_scenarios()
@@ -62,7 +62,7 @@ def test_scenario_registry_unknown_name_raises():
 
 def test_scenario_registry_contains():
     reg = default_scenarios()
-    assert "pdf" in reg and "nope" not in reg
+    assert "email" in reg and "pdf" not in reg and "nope" not in reg
 
 
 def test_build_scenario_maps_inputs():
@@ -106,7 +106,7 @@ def test_build_scenario_without_injection_keeps_scene2_recipient_trusted():
 
 # --- End-to-end canonical verdicts for both scenarios ---
 
-@pytest.mark.parametrize("name", ["email", "pdf"])
+@pytest.mark.parametrize("name", ["email"])
 def test_three_scenes_have_canonical_verdicts(name):
     svc = _service()
     scenario = default_scenarios().create(name)
