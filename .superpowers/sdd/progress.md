@@ -17,3 +17,5 @@ NOTE (environmental, all tasks): pytest-asyncio deprecation warning is from a gl
   plugin (not a project dep, no async code). Not pristine but not our code's fault.
 Task 4: complete (commits 6adfbb7..8bebe17, review clean)
   - Minor: unknown-tool-lookup path untested; fluent register() return unused
+Task 5: complete (commits 43f5efb..f90acc6, review clean)
+  - Minor: missing-arg + unknown-tool branches untested (defensive paths beyond brief)
