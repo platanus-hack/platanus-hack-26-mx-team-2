@@ -1,8 +1,10 @@
 import pytest
-from ikarus.interpreter import run, validate_plan, ExecutionResult
+from ikarus.interpreter import run, validate_plan, ExecutionResult, Interpreter
 from ikarus.schemas import Plan, PlanStep, ArgRef
 from ikarus.tools.registry import default_registry, ToolRegistry, ToolSpec, ToolKind
 from ikarus.tools.email_sink import SinkBlocked
+from ikarus.tools.sinks import share_doc
+from ikarus.policy import Decision
 from ikarus.labels import trusted
 
 def _req():
@@ -181,3 +183,55 @@ def test_validate_plan_flags_sink_unexpected_arg():
         "cc": ArgRef(**{"from": "request", "ref": "body"})})])
     errors = validate_plan(plan, default_registry(), _req())
     assert any("cc" in e for e in errors)
+
+# --- Interpreter as an injectable class (SOLID/OOP) ---
+
+def test_interpreter_class_runs_plan():
+    interp = Interpreter(default_registry())
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "request", "ref": "recipient"}),
+        "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    res = interp.run(plan, _req(), inbox_text="")
+    assert isinstance(res, ExecutionResult)
+    assert res.blocked is False
+    assert "send_email" in res.executed_sinks
+
+def test_interpreter_uses_injected_policy():
+    # An injected permissive policy lets an untrusted recipient through, proving the
+    # guard is a collaborator (strategy), not a hardcoded module call.
+    class AllowAllPolicy:
+        def evaluate(self, tool, args, registry):
+            return Decision(True, "allow all")
+    calls = []
+    def fake_send(to, body): calls.append(to); return "ok"
+    interp = Interpreter(default_registry(), policy=AllowAllPolicy(),
+                         sinks={"send_email": fake_send, "share_doc": share_doc})
+    plan = Plan(steps=[
+        PlanStep(id="s1", kind="source", tool="read_inbox", args={}),
+        PlanStep(id="s2", kind="extract", query="recipient", input_ref="s1", args={}),
+        PlanStep(id="s3", kind="sink", tool="send_email", args={
+            "to": ArgRef(**{"from": "step", "ref": "s2"}),
+            "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    res = interp.run(plan, _req(), inbox_text="x", q_mock_value="attacker@evil.com")
+    assert res.blocked is False
+    assert calls == ["attacker@evil.com"]
+
+def test_interpreter_default_policy_blocks_untrusted():
+    # With the default deny-by-default policy, the same plan is blocked.
+    interp = Interpreter(default_registry())
+    plan = Plan(steps=[
+        PlanStep(id="s1", kind="source", tool="read_inbox", args={}),
+        PlanStep(id="s2", kind="extract", query="recipient", input_ref="s1", args={}),
+        PlanStep(id="s3", kind="sink", tool="send_email", args={
+            "to": ArgRef(**{"from": "step", "ref": "s2"}),
+            "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    res = interp.run(plan, _req(), inbox_text="x", q_mock_value="attacker@evil.com")
+    assert res.blocked is True
+    assert "send_email" not in res.executed_sinks
+
+def test_interpreter_validate_plan_method():
+    interp = Interpreter(default_registry())
+    plan = Plan(steps=[PlanStep(id="s1", kind="sink", tool="send_email", args={
+        "to": ArgRef(**{"from": "literal", "value": "attacker@evil.com"}),
+        "body": ArgRef(**{"from": "request", "ref": "body"})})])
+    assert any("literal" in e for e in interp.validate_plan(plan, _req()))
