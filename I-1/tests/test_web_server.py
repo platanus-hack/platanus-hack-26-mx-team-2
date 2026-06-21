@@ -168,3 +168,10 @@ def test_flow_live_with_unconfigured_claude_shows_error_not_500():
     r = client.post("/flow/live")
     assert r.status_code == 200
     assert "[error]" in r.text and "ANTHROPIC_API_KEY" in r.text
+
+
+def test_provider_picker_sits_above_the_live_run():
+    r = client.get("/")
+    html = r.text
+    # The model/provider control must come BEFORE the live-run button, not at the bottom.
+    assert html.index('name="provider"') < html.index("Ejecutar en vivo")

@@ -314,6 +314,12 @@ button{
 button:hover{background:#ff8534}
 button:active{transform:translateY(1px)}
 
+/* ---- Provider bar (global control at top of demo panel) --------------- */
+.provider-bar{margin:0 0 18px; padding:12px 14px; border:1px solid var(--line);
+  border-radius:var(--radius-sm); background:var(--surface-2)}
+.provider-bar .bar-label{margin:0 0 8px; font-family:var(--mono); font-size:11px;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--brand)}
+
 /* ---- Provider picker --------------------------------------------------- */
 .provider-form{max-width:680px; margin:0 0 18px; padding:16px; border:1px solid var(--line);
   border-radius:var(--radius); background:var(--surface-2)}

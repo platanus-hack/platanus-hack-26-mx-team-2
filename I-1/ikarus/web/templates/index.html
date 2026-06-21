@@ -74,6 +74,15 @@
       <p class="hint">Tres escenas sobre el escenario de correo integrado. Las escenas 1–2
         son Ikarus (contenido); la escena 3 es un agente ingenuo de un solo LLM (secuestrado).</p>
 
+      <div class="provider-bar">
+        <p class="bar-label">Modelo para el flujo en vivo y el chat</p>
+        {% with provider=provider_ctx.provider, model=provider_ctx.model,
+                needs_key=provider_ctx.needs_key, key_set=provider_ctx.key_set,
+                status=provider_ctx.status, status_class=provider_ctx.status_class %}
+          {% include "_provider.html" %}
+        {% endwith %}
+      </div>
+
       <div class="live-run">
         <button class="flow-btn" type="button" hx-post="/flow/live"
                 hx-target="#live-result" hx-swap="innerHTML" hx-disabled-elt="this">
@@ -120,11 +129,6 @@
       <p class="hint">Conversa con el agente ingenuo. Con un modelo real conectado
         (LM Studio / OpenAI / Claude) puedes intentar secuestrarlo con una inyección;
         en modo <code>mock</code> responde de forma determinista sin red.</p>
-      {% with provider=provider_ctx.provider, model=provider_ctx.model,
-              needs_key=provider_ctx.needs_key, key_set=provider_ctx.key_set,
-              status=provider_ctx.status, status_class=provider_ctx.status_class %}
-        {% include "_provider.html" %}
-      {% endwith %}
       <div id="chat" class="chat" role="log" aria-live="polite">
         {% with messages=chat_messages, history_json=chat_history_json, provider=chat_provider %}
           {% include "_chat.html" %}
