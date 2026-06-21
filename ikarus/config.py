@@ -16,6 +16,8 @@ REASONING_MODEL_MARKERS = (
     "reasoner", "thinking",
 )
 
+DEFAULT_SINK = "mock"  # "mock" | "resend"; mock never sends a real email.
+
 @dataclass(frozen=True)
 class Settings:
     base_url: str
@@ -23,6 +25,11 @@ class Settings:
     api_key: str
     max_tokens: int = DEFAULT_MAX_TOKENS
     reasoning_max_tokens: int = DEFAULT_REASONING_MAX_TOKENS
+    sink: str = DEFAULT_SINK
+    resend_api_key: str = ""
+    email_from: str = ""
+    # Hard backstop: a real sink only sends to addresses on this allowlist.
+    allowed_recipients: tuple[str, ...] = ()
 
 def is_reasoning_model(model: str) -> bool:
     """Heuristic: does this model id belong to a reasoning ('thinking') family?"""
@@ -38,4 +45,11 @@ def load_settings() -> Settings:
         reasoning_max_tokens=int(
             os.environ.get("IKARUS_REASONING_MAX_TOKENS", DEFAULT_REASONING_MAX_TOKENS)
         ),
+        sink=os.environ.get("IKARUS_SINK", DEFAULT_SINK),
+        resend_api_key=os.environ.get("RESEND_API_KEY", ""),
+        email_from=os.environ.get("IKARUS_EMAIL_FROM", ""),
+        allowed_recipients=_parse_recipients(os.environ.get("IKARUS_ALLOWED_RECIPIENTS", "")),
     )
+
+def _parse_recipients(raw: str) -> tuple[str, ...]:
+    return tuple(addr.strip() for addr in raw.split(",") if addr.strip())

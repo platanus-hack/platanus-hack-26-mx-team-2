@@ -33,3 +33,22 @@ def test_is_reasoning_model():
     assert is_reasoning_model("deepseek/deepseek-r1-0528-qwen3-8b")
     assert not is_reasoning_model("google/gemma-3-12b")
     assert not is_reasoning_model("openai/gpt-oss-20b")
+
+def test_sink_defaults_to_mock(monkeypatch):
+    for k in ("IKARUS_SINK", "IKARUS_ALLOWED_RECIPIENTS", "RESEND_API_KEY",
+              "IKARUS_EMAIL_FROM"):
+        monkeypatch.delenv(k, raising=False)
+    s = load_settings()
+    assert s.sink == "mock"
+    assert s.allowed_recipients == ()
+
+def test_allowed_recipients_parsed_from_env(monkeypatch):
+    monkeypatch.setenv("IKARUS_SINK", "resend")
+    monkeypatch.setenv("RESEND_API_KEY", "re_x")
+    monkeypatch.setenv("IKARUS_EMAIL_FROM", "onboarding@resend.dev")
+    monkeypatch.setenv("IKARUS_ALLOWED_RECIPIENTS", "me@corp.com, me+spam@corp.com ,")
+    s = load_settings()
+    assert s.sink == "resend"
+    assert s.resend_api_key == "re_x"
+    assert s.email_from == "onboarding@resend.dev"
+    assert s.allowed_recipients == ("me@corp.com", "me+spam@corp.com")
