@@ -38,7 +38,7 @@ Plan ejecutado con subagentes desde `docs/superpowers/plans/2026-06-21-ikarus-de
    sistema se **renombró de Lazarus → Ikarus**; el documento de diseño/visión completo
    (gateway MCP, stack TS) está vendorizado en `docs/DOCUMENTO-MAESTRO.md`. **Este repo es solo
    el PoC del núcleo**; el gateway/TS es visión, no construido.
-2. **Verifica verde con entorno limpio (sin `.env`):** `cd I-1 && python3 -m pytest -q` → **178 passed**.
+2. **Verifica verde con entorno limpio (sin `.env`):** `cd demo && python3 -m pytest -q` → **178 passed**.
    (Si cargas `.env` con `IKARUS_SINK=resend`, los tests del CLI intentan envíos reales; corre limpio.)
 3. **Web:** `pip install -e ".[web]"` y `python3 -m ikarus.web` (http://127.0.0.1:8000). Es
    **mock-only para el motor** (no manda correos aunque el `.env` diga resend — se fuerza mock).
@@ -102,18 +102,18 @@ con argumentos contaminados. La contención es **estructural**, no por detecció
 
 ## Estructura del repo (Agile)
 
-Todo el prototipo vive ahora bajo **`I-1/`** (Agile, iteración 1). **Todos los comandos se
-corren desde dentro de `I-1/`:**
+Todo el prototipo vive ahora bajo **`demo/`** (Agile, iteración 1). **Todos los comandos se
+corren desde dentro de `demo/`:**
 
 ```
-cd I-1
+cd demo
 pip install -e .
 python3 -m ikarus ...
 python3 -m pytest
 ```
 
 La meta a nivel de repo (`.gitignore`, `.superpowers`) se queda en la **raíz del repo**, fuera
-de `I-1/`.
+de `demo/`.
 
 ## Las tres capas (la garantía que demuestra)
 
@@ -244,7 +244,7 @@ atómicos, suite verde y demo intacto en cada paso. **Hecho:**
   Para entrega total: verificar un dominio en resend.com/domains y `IKARUS_EMAIL_FROM=
   ikarus@tudominio.com`. El dueño **no tiene dominio** por ahora → demo se queda en mock para el
   jurado (Escena 3 exfiltra a `attacker@evil.com` de forma determinista y clara).
-- **Credenciales por `.env` local (gitignored):** hay un `I-1/.env` (NO se commitea) para pruebas.
+- **Credenciales por `.env` local (gitignored):** hay un `demo/.env` (NO se commitea) para pruebas.
   La key usada en pruebas quedó expuesta en el chat → **ROTARLA** es pendiente del dueño.
 
 ## Interfaz web (UI) — CONSTRUIDA y REDISEÑADA
@@ -361,7 +361,7 @@ Aplicado un **design system de marca** sobre la UI existente (motor y tests inta
 
 ### Pendientes del DUEÑO (acción humana, no del agente)
 1. **ROTAR la API key de Resend** 🔑 — quedó expuesta en el chat de la sesión anterior. Borrarla en
-   resend.com y crear una nueva; va en `I-1/.env` (gitignored), nunca en el código.
+   resend.com y crear una nueva; va en `demo/.env` (gitignored), nunca en el código.
 2. **(Opcional) Dominio verificado** para que la Escena 3 *entregue* el correo de exfiltración (hoy
    el sandbox lo rechaza). Sin dominio → demo en mock (ya es la recomendación para el jurado).
 

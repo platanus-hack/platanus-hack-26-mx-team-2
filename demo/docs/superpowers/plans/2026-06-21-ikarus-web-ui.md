@@ -14,7 +14,7 @@
 
 ## Global Constraints
 
-- All commands run from inside `I-1/` (e.g. `cd I-1 && python3 -m pytest -q`).
+- All commands run from inside `demo/` (e.g. `cd demo && python3 -m pytest -q`).
 - The web UI runs the engine in **mock mode only** (`mock=True`); it never requires LM Studio.
 - **Do not break the taint guarantee or the existing suite.** Baseline before starting: `python3 -m pytest -q` → `128 passed`. After every task the suite must stay green and grow.
 - Immutability: never mutate `Scenario`/`ExecutionResult`/`Tainted`; construct new objects.
@@ -27,7 +27,7 @@
 ## File Structure
 
 ```
-I-1/ikarus/
+demo/ikarus/
   app.py                 # MODIFY: add run_scenario(scenario); add "result"/"hijacked" keys
   scenarios.py           # MODIFY: add build_scenario(...)
   web/
@@ -40,14 +40,14 @@ I-1/ikarus/
       _scenes.html       # CREATE: HTMX fragment, the 3 scene cards
     static/
       style.css          # CREATE: dark theme + taint colors
-I-1/tests/
+demo/tests/
   test_app.py            # MODIFY: tests for run_scenario + structured result
   test_scenarios.py      # MODIFY: tests for build_scenario
   test_web_views.py      # CREATE: pure view-model tests (no server)
   test_web_server.py     # CREATE: TestClient route tests
-I-1/pyproject.toml       # MODIFY: add [web] optional deps + httpx to dev
-I-1/README.md            # MODIFY: document the web UI
-I-1/docs/ESTADO-IKARUS.md# MODIFY: mark C2 web UI built
+demo/pyproject.toml       # MODIFY: add [web] optional deps + httpx to dev
+demo/README.md            # MODIFY: document the web UI
+demo/docs/ESTADO-IKARUS.md# MODIFY: mark C2 web UI built
 ```
 
 ---
@@ -101,7 +101,7 @@ def test_run_scene_still_delegates():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd I-1 && python3 -m pytest tests/test_app.py -q`
+Run: `cd demo && python3 -m pytest tests/test_app.py -q`
 Expected: FAIL — `TypeError`/`AttributeError` (no `run_scenario`) and `KeyError: 'result'`.
 
 - [ ] **Step 3: Refactor `app.py` to add `run_scenario` and the new keys**
@@ -137,14 +137,14 @@ In `ikarus/app.py`, replace the `run_scene` method body so it delegates, and add
 
 - [ ] **Step 4: Run tests to verify they pass (and the whole suite)**
 
-Run: `cd I-1 && python3 -m pytest -q`
+Run: `cd demo && python3 -m pytest -q`
 Expected: PASS — `132 passed` (128 baseline + 4 new).
 
 - [ ] **Step 5: Commit**
 
 ```bash
 cd /Users/gabriels/Proyectos/Platanus/CAMEL
-git add I-1/ikarus/app.py I-1/tests/test_app.py
+git add demo/ikarus/app.py demo/tests/test_app.py
 git commit -m "feat(app): run_scenario accepts a Scenario instance and exposes structured result"
 ```
 
@@ -195,7 +195,7 @@ def test_build_scenario_tainted_plan_routes_recipient_from_step():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd I-1 && python3 -m pytest tests/test_scenarios.py -q`
+Run: `cd demo && python3 -m pytest tests/test_scenarios.py -q`
 Expected: FAIL — `ImportError: cannot import name 'build_scenario'`.
 
 - [ ] **Step 3: Add `build_scenario` to `scenarios.py`**
@@ -227,14 +227,14 @@ def build_scenario(*, name: str, request: str, body: str, trusted_recipient: str
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd I-1 && python3 -m pytest tests/test_scenarios.py -q`
+Run: `cd demo && python3 -m pytest tests/test_scenarios.py -q`
 Expected: PASS (3 new tests pass; existing scenario tests still pass).
 
 - [ ] **Step 5: Commit**
 
 ```bash
 cd /Users/gabriels/Proyectos/Platanus/CAMEL
-git add I-1/ikarus/scenarios.py I-1/tests/test_scenarios.py
+git add demo/ikarus/scenarios.py demo/tests/test_scenarios.py
 git commit -m "feat(scenarios): build_scenario constructs a Scenario from sandbox input"
 ```
 
@@ -319,7 +319,7 @@ def test_scene_view_for_naive_scene():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd I-1 && python3 -m pytest tests/test_web_views.py -q`
+Run: `cd demo && python3 -m pytest tests/test_web_views.py -q`
 Expected: FAIL — `ModuleNotFoundError: No module named 'ikarus.web'`.
 
 - [ ] **Step 3: Create the web package and views**
@@ -400,14 +400,14 @@ Replace `ikarus/web/__init__.py` with a bare package marker for now (Task 4 adds
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd I-1 && python3 -m pytest tests/test_web_views.py -q`
+Run: `cd demo && python3 -m pytest tests/test_web_views.py -q`
 Expected: PASS (4 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
 cd /Users/gabriels/Proyectos/Platanus/CAMEL
-git add I-1/ikarus/web/__init__.py I-1/ikarus/web/views.py I-1/tests/test_web_views.py
+git add demo/ikarus/web/__init__.py demo/ikarus/web/views.py demo/tests/test_web_views.py
 git commit -m "feat(web): pure view models (ledger rows + scene view)"
 ```
 
@@ -459,7 +459,7 @@ def test_index_does_not_leak_injection_into_scene1_ledger():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd I-1 && python3 -m pytest tests/test_web_server.py -q`
+Run: `cd demo && python3 -m pytest tests/test_web_server.py -q`
 Expected: FAIL — `ModuleNotFoundError`/`AttributeError` (no `server.create_app`).
 
 - [ ] **Step 3: Create `server.py`**
@@ -675,23 +675,23 @@ __all__ = ["create_app"]
 
 - [ ] **Step 7: Run tests to verify they pass (and full suite)**
 
-Run: `cd I-1 && python3 -m pytest -q`
+Run: `cd demo && python3 -m pytest -q`
 Expected: PASS — `138 passed` (132 + 4 views were already counted in Task 3; here +2 server tests over Task 3's total → confirm the number increases and nothing fails).
 
 > If `test_index_*` fails on a `TemplateResponse` deprecation/signature error, it is non-fatal for the assertions; only fix if it raises. The `{"request": request, ...}` form is supported.
 
 - [ ] **Step 8: Manual smoke (optional but recommended)**
 
-Run: `cd I-1 && python3 -c "from fastapi.testclient import TestClient; from ikarus.web.server import create_app; r=TestClient(create_app()).get('/'); print(r.status_code, 'Taint Ledger' in r.text, 'BLOCKED' in r.text)"`
+Run: `cd demo && python3 -c "from fastapi.testclient import TestClient; from ikarus.web.server import create_app; r=TestClient(create_app()).get('/'); print(r.status_code, 'Taint Ledger' in r.text, 'BLOCKED' in r.text)"`
 Expected: `200 True True`
 
 - [ ] **Step 9: Commit**
 
 ```bash
 cd /Users/gabriels/Proyectos/Platanus/CAMEL
-git add I-1/ikarus/web/server.py I-1/ikarus/web/__init__.py \
-        I-1/ikarus/web/templates/index.html I-1/ikarus/web/templates/_scenes.html \
-        I-1/ikarus/web/static/style.css I-1/tests/test_web_server.py
+git add demo/ikarus/web/server.py demo/ikarus/web/__init__.py \
+        demo/ikarus/web/templates/index.html demo/ikarus/web/templates/_scenes.html \
+        demo/ikarus/web/static/style.css demo/tests/test_web_server.py
 git commit -m "feat(web): FastAPI app factory + guided-demo route, templates, styles"
 ```
 
@@ -740,7 +740,7 @@ def test_sandbox_without_injection_naive_stays_safe():
 
 - [ ] **Step 2: Run tests to verify they fail (or pass)**
 
-Run: `cd I-1 && python3 -m pytest tests/test_web_server.py -q`
+Run: `cd demo && python3 -m pytest tests/test_web_server.py -q`
 Expected: If Task 4's sandbox route is correct, these may PASS immediately. If they FAIL, the failure is a real behavior gap — proceed to Step 3. (Per TDD, if they pass immediately, add an assertion that distinguishes sandbox from index: confirm `"mallory@evil.test"` is NOT in `client.get("/").text` to prove the input drove the output.)
 
 - [ ] **Step 3: If failing, fix `server.py:sandbox`**
@@ -758,14 +758,14 @@ def test_sandbox_output_differs_from_default_demo():
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `cd I-1 && python3 -m pytest tests/test_web_server.py -q`
+Run: `cd demo && python3 -m pytest tests/test_web_server.py -q`
 Expected: PASS (all server tests).
 
 - [ ] **Step 6: Commit**
 
 ```bash
 cd /Users/gabriels/Proyectos/Platanus/CAMEL
-git add I-1/tests/test_web_server.py
+git add demo/tests/test_web_server.py
 git commit -m "test(web): sandbox contains custom injection; naive hijacks to the injected address"
 ```
 
@@ -796,7 +796,7 @@ def test_web_main_module_exposes_app_and_main():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd I-1 && python3 -m pytest tests/test_web_server.py::test_web_main_module_exposes_app_and_main -q`
+Run: `cd demo && python3 -m pytest tests/test_web_server.py::test_web_main_module_exposes_app_and_main -q`
 Expected: FAIL — `ModuleNotFoundError: No module named 'ikarus.web.__main__'`.
 
 - [ ] **Step 3: Create the runner**
@@ -826,7 +826,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd I-1 && python3 -m pytest tests/test_web_server.py::test_web_main_module_exposes_app_and_main -q`
+Run: `cd demo && python3 -m pytest tests/test_web_server.py::test_web_main_module_exposes_app_and_main -q`
 Expected: PASS.
 
 - [ ] **Step 5: Add the `web` extra and `httpx` dev dep to `pyproject.toml`**
@@ -841,7 +841,7 @@ web = ["fastapi>=0.110", "uvicorn>=0.27", "jinja2>=3.1", "python-multipart>=0.0.
 
 - [ ] **Step 6: Document the UI in `README.md`**
 
-Add this section to `I-1/README.md` immediately after the `## Diagram` section (before `## Run (no model required)`):
+Add this section to `demo/README.md` immediately after the `## Diagram` section (before `## Run (no model required)`):
 
 ```markdown
 ## Web UI (demo + sandbox)
@@ -851,7 +851,7 @@ type your own request and hide an injection in the inbox, then watch Ikarus
 contain it while the naive agent gets hijacked. Runs in mock mode (no model).
 
 ```bash
-cd I-1
+cd demo
 pip install -e ".[web]"
 python -m ikarus.web            # serves http://127.0.0.1:8000
 ```
@@ -870,20 +870,20 @@ to:
 ```
 4. **C2 (vista web): CONSTRUIDA.** FastAPI + HTMX bajo `ikarus/web/` (demo guiado de
    las 3 escenas + sandbox interactivo). Mock-only. Correr: `pip install -e ".[web]"`
-   y `python -m ikarus.web` (http://127.0.0.1:8000). Ver `I-1/README.md`.
+   y `python -m ikarus.web` (http://127.0.0.1:8000). Ver `demo/README.md`.
 ```
 
 - [ ] **Step 8: Run the full suite**
 
-Run: `cd I-1 && python3 -m pytest -q`
+Run: `cd demo && python3 -m pytest -q`
 Expected: PASS — final total around `141 passed` (no failures; exact count = 128 baseline + tasks 1–6 additions).
 
 - [ ] **Step 9: Commit**
 
 ```bash
 cd /Users/gabriels/Proyectos/Platanus/CAMEL
-git add I-1/ikarus/web/__main__.py I-1/pyproject.toml I-1/README.md \
-        I-1/docs/ESTADO-IKARUS.md I-1/tests/test_web_server.py
+git add demo/ikarus/web/__main__.py demo/pyproject.toml demo/README.md \
+        demo/docs/ESTADO-IKARUS.md demo/tests/test_web_server.py
 git commit -m "feat(web): python -m ikarus.web runner, [web] extra, docs"
 ```
 

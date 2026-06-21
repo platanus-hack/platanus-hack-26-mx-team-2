@@ -22,11 +22,11 @@ Para el panorama completo del problema y la solución, ver el README y
 - Python 3.11+ (probado con 3.12).
 - Dependencias: `openai`, `pydantic>=2`, `rich`, `pytest`.
 
-> IMPORTANTE: el prototipo vive bajo `I-1/`. TODOS los comandos se corren **desde dentro de
-> `I-1/`** (tanto `pytest` como `python3 -m ikarus ...`).
+> IMPORTANTE: el prototipo vive bajo `demo/`. TODOS los comandos se corren **desde dentro de
+> `demo/`** (tanto `pytest` como `python3 -m ikarus ...`).
 
 ```bash
-cd /Users/gabriels/Proyectos/Platanus/CAMEL/I-1
+cd /Users/gabriels/Proyectos/Platanus/CAMEL/demo
 pip install -e .          # instala el paquete ikarus + dependencias
 ```
 
@@ -34,7 +34,7 @@ Si `rich`/`openai` no estuvieran: `pip install "rich>=13" "openai>=1.0" "pydanti
 
 ## 1. Correr los tests (no necesita LM Studio)
 
-Desde `I-1/`:
+Desde `demo/`:
 
 ```bash
 python3 -m pytest -q
@@ -213,7 +213,7 @@ Lo que recibes:
 
 ## 5. Si algo falla
 
-- `ModuleNotFoundError: ikarus` → corre **desde `I-1/`** o ejecuta `pip install -e .` ahí.
+- `ModuleNotFoundError: ikarus` → corre **desde `demo/`** o ejecuta `pip install -e .` ahí.
 - El demo se imprime doble → revisa `ikarus/tui.py` (`Console(record=True, file=io.StringIO())`).
 - `--live` cuelga o da error de conexión → LM Studio no está sirviendo en `localhost:1234`.
 - Para entender qué se simplificó → `docs/HONESTY.md` y `docs/CAMEL-VS-IKARUS.md`.
