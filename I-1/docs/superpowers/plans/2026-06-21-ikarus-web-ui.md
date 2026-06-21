@@ -1,5 +1,9 @@
 # Ikarus Web UI Implementation Plan
 
+> **STATUS: EJECUTADO (2026-06-21).** Las 6 tareas se completaron vía subagentes; `145 passed`.
+> UI viva verificada (`python -m ikarus.web`: GET / y POST /sandbox 200). Commits `a06b519`,
+> `6e1d3f7`, `39a13ed`, `5bd8fcb`, `32f3602`, `c0745ab` (+ fix `8a826b5`). Ya en `develop`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A FastAPI + HTMX web UI for Ikarus with a guided 3-scene demo and an interactive sandbox where a judge types their own request + hidden injection and watches Ikarus contain it (while the naive agent gets hijacked).

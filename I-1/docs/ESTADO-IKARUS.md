@@ -1,7 +1,8 @@
 # Estado de Ikarus — contexto para retomar
 
 > Documento de traspaso. Léelo antes de tocar nada. Última actualización: 2026-06-21
-> (refactor SOLID/OOP completado).
+> (refactor SOLID/OOP completado · interfaz web construida · correo real Resend probado ·
+> `ikarus-impl` fusionada a `develop`).
 
 ## Qué es
 
@@ -144,12 +145,43 @@ atómicos, suite verde y demo intacto en cada paso. **Hecho:**
 - Las direcciones del escenario son sobre-escribibles por env para que un demo en vivo llegue a tu
   propia bandeja: `IKARUS_TRUSTED_RECIPIENT` y `IKARUS_ATTACKER_ADDR`.
 - `share_doc` sigue mock.
+- **PROBADO en vivo (2026-06-21):** con una key real de Resend, la Escena 1 entrega un correo
+  legítimo al inbox del dueño y el smoke test (`python3 -m ikarus.tools.email_sink`) envía de
+  verdad. Fix aplicado: `_http_post` ahora manda `User-Agent` (el WAF de Resend daba 403 al UA por
+  defecto de urllib) y **surface el cuerpo del error** de la API.
+- **Limitación del sandbox de Resend (documentada en `docs/COMO-PROBAR.md`):** el remitente
+  `onboarding@resend.dev` **solo entrega a la dirección exacta dueña de la cuenta**. Por eso la
+  Escena 3 (exfiltración a `+attacker`) NO entrega bajo sandbox (Resend la rechaza con 403, se
+  registra sin crashear). Es **imposible** que la Escena 3 entregue *y* mantenga `hijacked=True`
+  sin un **dominio verificado** (atacante≠destinatario, pero ambos entregables ⇒ contradicción).
+  Para entrega total: verificar un dominio en resend.com/domains y `IKARUS_EMAIL_FROM=
+  ikarus@tudominio.com`. El dueño **no tiene dominio** por ahora → demo se queda en mock para el
+  jurado (Escena 3 exfiltra a `attacker@evil.com` de forma determinista y clara).
+- **Credenciales por `.env` local (gitignored):** hay un `I-1/.env` (NO se commitea) para pruebas.
+  La key usada en pruebas quedó expuesta en el chat → **ROTARLA** es pendiente del dueño.
+
+## Interfaz web (UI) — CONSTRUIDA
+
+FastAPI + HTMX bajo `ikarus/web/`. Mock-only (no requiere modelo). Dos vistas:
+- **Demo guiado:** las 3 escenas del escenario `email` con Taint Ledger + veredictos.
+- **Sandbox interactivo:** el usuario escribe su petición + esconde una inyección en el inbox y
+  corre las 3 escenas sobre *su* input (HTMX swap del fragmento).
+- Reusa el motor: `IkarusApp.run_scenario(scene, scenario, mock=True)` + `scenarios.build_scenario`.
+- Correr: `pip install -e ".[web]"` y `python3 -m ikarus.web` (http://127.0.0.1:8000).
+- Construida con la skill `writing-plans` + ejecución por subagentes; plan en
+  `docs/superpowers/plans/2026-06-21-ikarus-web-ui.md` (6 tareas, todas hechas).
 
 ## Estado del código
 
-- **Rama:** `ikarus-impl` (NO fusionada a `master`). ~42 commits.
-- **Tests:** `128 passed` (pytest). Cobertura de las tres garantías + las tres escenas + los
-  endurecimientos de la auditoría + las clases del refactor SOLID/OOP.
+- **Ramas:** `ikarus-impl` (rama de trabajo) **YA fusionada a `develop`** (merge `50ce092`,
+  historias no relacionadas, conflictos resueltos a favor de `ikarus-impl` con `-X theirs`;
+  `develop` conserva `project-logo.png`). Ambas pusheadas a `origin`. `develop` = entrega.
+- **Logo:** `project-logo.png` = wordmark IKARUS naranja sobre negro, 1000×1000, 61K (en ambas
+  ramas).
+- **Tests:** `145 passed` (pytest). Tres garantías + tres escenas + endurecimientos de auditoría +
+  clases del refactor SOLID/OOP + la UI web (views/server/runner) + el correo (sink).
+  **OJO:** corre pytest con **entorno limpio** — si cargas `.env` (`IKARUS_SINK=resend`) en el
+  mismo shell, algunos tests intentan envíos reales y fallan. No es regresión.
 - **Instalable:** `pip install -e .` funciona (verificado).
 - Hay un warning de `pytest-asyncio` que es **del entorno** (plugin global, no es dependencia del
   proyecto, no hay código async). No es culpa del código.
@@ -199,6 +231,11 @@ atómicos, suite verde y demo intacto en cada paso. **Hecho:**
 - `cli.py` / `__main__.py` — **CLI delgado:** solo argparse + delega en `CompositionRoot`/
   `IkarusApp`. `make_email_sink` se resuelve aquí (namespace `cli`) para `IKARUS_SINK` y el
   monkeypatch de los tests.
+- `web/` — **Interfaz web (FastAPI + HTMX):** `views.py` (serialización pura → ledger rows +
+  `scene_view`), `server.py` (`create_app()`, rutas `GET /` y `POST /sandbox`), `__main__.py`
+  (runner `python -m ikarus.web`), `templates/` (`index.html` + `_scenes.html`), `static/style.css`.
+  Deps en el extra `[web]` del `pyproject.toml` (fastapi/uvicorn/jinja2/python-multipart; httpx en
+  `dev` para TestClient).
 
 ### Documentación
 - `README.md` — quickstart (inglés).
@@ -207,6 +244,8 @@ atómicos, suite verde y demo intacto en cada paso. **Hecho:**
 - `docs/CAMEL-VS-IKARUS.md` — tabla de mapeo real CaMeL → Ikarus.
 - `docs/superpowers/specs/2026-06-20-ikarus-design.md` — spec de diseño.
 - `docs/superpowers/plans/2026-06-20-ikarus.md` — plan de implementación (14 tareas).
+- `docs/superpowers/plans/2026-06-21-ikarus-web-ui.md` — plan de la UI web (6 tareas, **EJECUTADO**).
+- `AGENTS.md` (raíz del repo) — orientación para agentes/compañeros que retoman el repo.
 - `.superpowers/sdd/progress.md` — bitácora de ejecución tarea por tarea.
 
 ### Repo de referencia (CaMeL real)
@@ -217,15 +256,24 @@ Clonado en `../camel-reference/` (hermano de este proyecto), Apache-2.0. Núcleo
 
 ## Pendientes / próximos pasos posibles
 
-1. **Refactor SOLID/OOP — COMPLETADO.** Ver la sección "Refactor SOLID/OOP (COMPLETADO)" arriba.
-   Nada pendiente del refactor.
-2. **Q-LLM real:** la extracción sigue siendo un mock determinista en todos los modos (nace
-   UNTRUSTED por diseño). Cablearla a un modelo es trabajo pendiente.
-3. **Stretch B2** (taint por flujo de control real) — **EN COLA**, solo si el dueño lo aprueba.
-   Requiere extender `schemas.py` (condicionales), `interpreter.py` y
-   `policy.py:propagate_control_flow_taint`.
-4. **C2 (vista web): CONSTRUIDA.** FastAPI + HTMX bajo `ikarus/web/` (demo guiado de
-   las 3 escenas + sandbox interactivo). Mock-only. Correr: `pip install -e ".[web]"`
-   y `python -m ikarus.web` (http://127.0.0.1:8000). Ver `I-1/README.md`.
-5. **Decisión de cierre de rama:** `ikarus-impl` no está fusionada (el dueño la fusionará a
-   mano). Opciones: merge a `master`, PR, o dejarla. (Pendiente que decida el dueño.)
+### Pendientes del DUEÑO (acción humana, no del agente)
+1. **ROTAR la API key de Resend** 🔑 — quedó expuesta en el chat de la sesión anterior. Borrarla en
+   resend.com y crear una nueva; va en `I-1/.env` (gitignored), nunca en el código.
+2. **(Opcional) Dominio verificado** para que la Escena 3 *entregue* el correo de exfiltración (hoy
+   el sandbox lo rechaza). Sin dominio → demo en mock (ya es la recomendación para el jurado).
+
+### Hecho (no repetir)
+- Refactor SOLID/OOP — **COMPLETADO**.
+- Interfaz web (C2) — **CONSTRUIDA** (`ikarus/web/`).
+- Correo real Resend — **INTEGRADO y PROBADO** (Escena 1 entrega; fix de User-Agent aplicado).
+- Merge `ikarus-impl` → `develop` — **HECHO** (`50ce092`, a favor de `ikarus-impl`).
+- Logo del proyecto — **ACTUALIZADO** (IKARUS 1000×1000).
+
+### Posibles próximos pasos (solo si el dueño lo pide)
+- **Pulido de la UI:** estética, selector de escenario `pdf` en el demo, animación del taint.
+- **Q-LLM real:** la extracción sigue siendo mock determinista en todos los modos (nace UNTRUSTED
+  por diseño). Cablearla a un modelo es trabajo pendiente.
+- **Stretch B2** (taint por flujo de control real) — **EN COLA**, solo con aprobación del dueño.
+  Requiere extender `schemas.py` (condicionales), `interpreter.py` y
+  `policy.py:propagate_control_flow_taint`.
+- **Limpieza de `.env`:** el dueño puede pedir borrar la key del `.env` local.
