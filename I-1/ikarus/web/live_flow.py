@@ -11,10 +11,23 @@ The taint guarantee still holds, by construction:
     code, not decided by the model);
   - the guard is `policy.check` — deterministic, not a model.
 """
+import re
+
 from ikarus.chat_provider import make_chat_provider
 from ikarus.labels import untrusted
 from ikarus.policy import check as policy_check
 from ikarus.tools.registry import default_registry
+
+# Bound a single live call so a local model answers in seconds (plans and a
+# single address don't need a big budget) and a hung model fails, not hangs.
+_LIVE_MAX_TOKENS = 220
+_LIVE_TIMEOUT = 45
+_THINK = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+
+
+def _clean(text: str) -> str:
+    """Drop reasoning-model <think> blocks so the surfaced value is clean."""
+    return _THINK.sub("", text or "").strip()
 
 _PLANNER_SYSTEM = (
     "Eres el P-LLM (planificador) de un agente. SOLO ves la petición del usuario y "
@@ -44,13 +57,14 @@ def run_live_flow(settings, scenario: dict) -> list[dict]:
     `scenario` needs `request` and `inbox_text`. May raise ValueError (missing
     provider key) or ChatError (transport) — the caller surfaces those.
     """
-    provider = make_chat_provider(settings)
+    provider = make_chat_provider(settings, max_tokens=_LIVE_MAX_TOKENS,
+                                  timeout=_LIVE_TIMEOUT)
     model = settings.chat_model or settings.llm_provider
     steps: list[dict] = []
 
     # Layer 1 — P-LLM (real): only the request + catalog, never the inbox.
     p_user = f"Petición confiable: {scenario['request']}\n{_CATALOG}"
-    plan = provider.complete(_PLANNER_SYSTEM, [{"role": "user", "content": p_user}])
+    plan = _clean(provider.complete(_PLANNER_SYSTEM, [{"role": "user", "content": p_user}]))
     steps.append({
         "stage": 1, "layer": "P-LLM", "model": model, "kind": "model",
         "title": "Planificador emite el plan",
@@ -60,8 +74,8 @@ def run_live_flow(settings, scenario: dict) -> list[dict]:
         "req": _req_log(_PLANNER_SYSTEM, p_user), "resp": _short(plan, 4000)})
 
     # Layer 2 — Q-LLM (real): reads the dirty inbox; output born UNTRUSTED here.
-    raw = provider.complete(_EXTRACTOR_SYSTEM,
-                            [{"role": "user", "content": scenario["inbox_text"]}])
+    raw = _clean(provider.complete(_EXTRACTOR_SYSTEM,
+                                   [{"role": "user", "content": scenario["inbox_text"]}]))
     extracted = _short(raw, 160)
     tainted = untrusted(extracted, "q_llm")
     steps.append({
