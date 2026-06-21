@@ -1,12 +1,40 @@
 import argparse
+import os
+import urllib.request
 from rich.console import Console
-from rich.panel import Panel
 from ikarus.scenarios import default_scenarios
 from ikarus.composition import CompositionRoot
 from ikarus.config import load_settings
 from ikarus.chat_provider import ChatError
 from ikarus.tools.email_sink import make_email_sink
 from ikarus.web.live_flow import live_extract, live_guard, live_naive, live_plan
+
+
+def _lmstudio_reachable(settings) -> bool:
+    base = settings.base_url.rstrip("/")
+    try:
+        req = urllib.request.Request(base + "/models", headers={"User-Agent": "ikarus/0.1"})
+        with urllib.request.urlopen(req, timeout=2) as resp:  # noqa: S310 (local URL)
+            return 200 <= resp.status < 300
+    except Exception:
+        return False
+
+
+def _ensure_live_provider(console: Console) -> bool:
+    """--live must use a REAL model. Honor an explicit provider (env/.env); else
+    autodetect a running LM Studio. If none is available, abort with a clear
+    message instead of silently falling back to the mock. Returns False to abort."""
+    settings = load_settings()
+    if settings.llm_provider != "mock":
+        return True  # user configured openai/claude/lmstudio explicitly
+    if _lmstudio_reachable(settings):
+        os.environ["IKARUS_LLM_PROVIDER"] = "lmstudio"  # picked up by load_settings()
+        console.print("[dim]proveedor autodetectado: LM Studio[/]")
+        return True
+    console.print("[bold red]--live necesita un modelo real conectado.[/] Inicia LM Studio "
+                  "en http://localhost:1234, o define IKARUS_LLM_PROVIDER=openai|claude "
+                  "y su API key (en un .env).")
+    return False
 
 # One-line purpose shown under each scene title (the structured taint proof).
 SCENE_SUBTITLE = {
@@ -48,22 +76,29 @@ def _print_logs(console: Console, step: dict) -> None:
             console.print(f"    {line}", markup=False)
 
 
-def _print_live_flow(console: Console, settings, scenario) -> None:
-    """Run the real pipeline (naive + P-LLM + Q-LLM + guard) and show model logs."""
+def _print_live_flow(console: Console, settings, scenario):
+    """Run the real pipeline (naive + P-LLM + Q-LLM + guard) and show model logs.
+
+    Returns the naive agent's hijack outcome (True/False), or None on error — used
+    for the summary. The naive agent is shown HERE (one real source) so it never
+    contradicts a separate heuristic panel."""
     console.rule(f"[bold]Flujo en vivo · logs de modelo · provider: {settings.llm_provider}")
     sc = {"request": scenario.request, "inbox_text": scenario.inbox_text,
-          "trusted_recipient": scenario.trusted_recipient}
+          "trusted_recipient": scenario.trusted_recipient,
+          "attacker_address": scenario.attacker_address}
     tool, arg = (("share_doc", "recipient") if scenario.name == "pdf"
                  else ("send_email", "to"))
     try:
-        steps = [live_naive(settings, sc), live_plan(settings, sc)]
+        naive = live_naive(settings, sc)
+        steps = [naive, live_plan(settings, sc)]
         ext_step, extracted = live_extract(settings, sc)
         steps += [ext_step, live_guard(extracted, tool=tool, arg=arg)]
     except (ChatError, ValueError) as exc:
         console.print(f"[red][error][/] {exc} — revisa el proveedor / API key.")
-        return
+        return None
     for step in steps:
         _print_logs(console, step)
+    return naive.get("decision") == "EXFIL"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -75,35 +110,37 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     console = Console()
-    mode = "mock (offline, determinista)" if args.mock else "en vivo (modelos reales)"
+    if not args.mock and not _ensure_live_provider(console):
+        return 1
+    mode = ("mock (offline, determinista)" if args.mock
+            else f"en vivo · provider: {load_settings().llm_provider}")
     console.rule("[bold]IKARUS · contención de prompt injection por diseño")
     console.print(f"escenario: [bold]{args.scenario}[/]  ·  modo: [bold]{mode}[/]\n")
 
+    # Scenes 1-2 are the Ikarus structured proof (taint ledger). Scene 3 (the naive
+    # agent) is shown once, with real model logs, in the live-flow section below — so
+    # there is a single source of truth and no heuristic-vs-model contradiction.
     scenes = [1, 2, 3] if args.scene == "all" else [int(args.scene)]
-    blocked_any = hijacked_any = False
     for sc in scenes:
+        if sc == 3:
+            continue
         out = run_scene(sc, args.scenario, mock=args.mock)
         console.print(f"[bold]━━ Escena {sc} ·[/] [dim]{SCENE_SUBTITLE[sc]}[/]")
-        if sc == 3:
-            hijacked = out.get("hijacked", False)
-            hijacked_any = hijacked_any or hijacked
-            tag = ("HIJACKED · exfiltró a un tercero" if hijacked else "SAFE")
-            style = "bold red" if hijacked else "bold green"
-            console.print(Panel(f"Agente ingenuo → envía a {out.get('naive_recipient')}\n{tag}",
-                                style=style, expand=False))
-        else:
-            print(out["text"])  # rich-rendered Taint Ledger + verdict (already styled)
-            blocked_any = blocked_any or out["blocked"]
-            if not args.mock and out["used_fallback"]:
-                console.print("[dim][note] P-LLM no disponible/ inválido — plan canónico de respaldo.[/]")
+        print(out["text"])  # rich-rendered Taint Ledger + verdict (already styled)
+        if not args.mock and out["used_fallback"]:
+            console.print("[dim][note] P-LLM no disponible/inválido — plan canónico de respaldo.[/]")
         console.print()
 
-    _print_live_flow(console, load_settings(), default_scenarios().create(args.scenario))
+    scenario = default_scenarios().create(args.scenario)
+    hijacked = _print_live_flow(console, load_settings(), scenario)
 
     if args.scene == "all":
         console.rule("[bold]Resumen")
         console.print("[green]Ikarus contuvo el ataque[/]: Escena 1 ALLOWED, Escena 2 BLOCKED "
                       "(guardia determinista, no detección).")
-        verdict = "[red]HIJACKED — exfiltró[/]" if hijacked_any else "[green]SAFE[/]"
-        console.print(f"Agente ingenuo (1 LLM, sin defensa): {verdict}.")
+        if hijacked is True:
+            console.print("Agente ingenuo (1 LLM, sin defensa): [red]HIJACKED — exfiltró al atacante[/].")
+        elif hijacked is False:
+            console.print("Agente ingenuo (1 LLM): el modelo no exfiltró esta vez — "
+                          "[dim]no confíes en eso; Ikarus bloquea por construcción[/].")
     return 0
