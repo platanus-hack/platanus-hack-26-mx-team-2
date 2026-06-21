@@ -4,6 +4,7 @@ The 3-scene engine runs in mock mode only. The interactive chat is powered by a
 SWAPPABLE provider (mock | lmstudio | openai | claude) selected by config, so the
 same UI works offline by default and against a real model when configured.
 """
+import dataclasses
 import json
 from pathlib import Path
 from fastapi import FastAPI, Form, Request
@@ -21,6 +22,29 @@ from ikarus.web.views import scene_view
 _DIR = Path(__file__).parent
 _SCENES = (1, 2, 3)
 _FALLBACK_ATTACKER = "attacker@example.com"
+_PROVIDERS = ("mock", "lmstudio", "openai", "claude")
+
+# Runtime provider override set from the UI. In-memory only (never persisted to
+# disk, never echoed back), so a key entered in the browser lives for the life
+# of the process and nowhere else. Merged over env-based load_settings().
+_RUNTIME: dict = {}
+
+
+def _effective_settings():
+    s = load_settings()
+    return dataclasses.replace(s, **_RUNTIME) if _RUNTIME else s
+
+
+def _provider_ctx(status: str = "", status_class: str = "") -> dict:
+    """Template context for the provider picker. The key value is NEVER sent —
+    only whether one is configured for the selected provider."""
+    s = _effective_settings()
+    p = s.llm_provider if s.llm_provider in _PROVIDERS else "mock"
+    key_set = (bool(s.openai_api_key) if p == "openai"
+               else bool(s.anthropic_api_key) if p == "claude" else False)
+    return {"provider": p, "providers": _PROVIDERS, "model": s.chat_model,
+            "needs_key": p in ("openai", "claude"), "key_set": key_set,
+            "status": status, "status_class": status_class}
 
 # Naive-agent persona for the chat: it has access to the user's inbox, which is
 # exactly what makes hidden-instruction injection demonstrable.
@@ -72,19 +96,42 @@ def create_app() -> FastAPI:
             "default_inbox": scenario.inbox_text,
             "chat_messages": [],
             "chat_history_json": "[]",
-            "chat_provider": load_settings().llm_provider,
+            "chat_provider": _effective_settings().llm_provider,
+            "provider_ctx": _provider_ctx(),
         })
+
+    @api.post("/provider", response_class=HTMLResponse)
+    def set_provider(request: Request, provider: str = Form("mock"),
+                     model: str = Form(""), api_key: str = Form("")):
+        provider = provider if provider in _PROVIDERS else "mock"
+        _RUNTIME["llm_provider"] = provider
+        if model.strip():
+            _RUNTIME["chat_model"] = model.strip()
+        else:
+            _RUNTIME.pop("chat_model", None)  # fall back to per-provider default
+        key = api_key.strip()
+        if provider == "openai" and key:
+            _RUNTIME["openai_api_key"] = key
+        if provider == "claude" and key:
+            _RUNTIME["anthropic_api_key"] = key
+        try:  # fail fast: a missing key surfaces here, not at first message
+            make_chat_provider(_effective_settings())
+            status, cls = f"Conectado a {provider}.", "ok"
+        except ValueError as exc:
+            status, cls = str(exc), "err"
+        return templates.TemplateResponse(request, "_provider.html",
+                                          _provider_ctx(status, cls))
 
     @api.post("/chat", response_class=HTMLResponse)
     def chat(request: Request, message: str = Form(""), history: str = Form("[]")):
-        settings = load_settings()
+        settings = _effective_settings()
         messages = _parse_history(history)
         text = (message or "").strip()[:_MAX_MSG]
         if text:
             messages.append({"role": "user", "content": text})
             try:
                 reply = make_chat_provider(settings).complete(_CHAT_SYSTEM, messages)
-            except ChatError as exc:  # transport/API failure — surface, don't crash
+            except (ChatError, ValueError) as exc:  # transport/config — surface, don't crash
                 reply = f"[error] {exc}"
             messages.append({"role": "assistant", "content": reply})
         messages = messages[-_MAX_HISTORY:]
